@@ -126,6 +126,83 @@ All runtime settings live in the `settings` database table and can be edited fro
 | `retention_days` | `0` | 0 = keep forever; otherwise prune `processed_ndrs` older than N days |
 | `login_rate_max` | `5` | Failed-login attempts allowed per window |
 | `login_rate_window` | `900` | Window length in seconds |
+| `cron_token` | *(auto-generated on first call)* | Shared secret for the cron endpoint. Rotate from **Admin → Security**. |
+| `cron_local_only` | `1` | When `1`, only `127.0.0.1` / `::1` may call the cron endpoint. |
+
+## ⏰ Automated sync (cron)
+
+EBM exposes a single, minimal endpoint that keeps the suppression list current without
+anybody opening the dashboard:
+
+```
+GET|POST /cron/refresh
+Headers: X-Cron-Token: <token>
+       (or pass ?token=<token> in the query string)
+```
+
+**What it does**
+- For every active mailbox, fetches only the NDRs from the **last 12 hours** from Microsoft Graph
+- Extracts failed recipients and adds any *new* addresses to `suppression_list`
+- Deduplicates against `processed_ndrs` so the dashboard and cron never double-count
+- Returns a small status JSON (no bounce content is leaked):
+
+```json
+{
+  "ok": true,
+  "started_at": "2026-06-06T14:35:00+00:00",
+  "duration_ms": 412,
+  "window_hours": 12,
+  "mailboxes": 3,
+  "messages": 7,
+  "unique_failed": 12,
+  "added": 4,
+  "updated": 8,
+  "suppression_total": 154,
+  "mailbox_errors": {}
+}
+```
+
+**Recommended schedule: every 5 minutes.** The 12-hour window guarantees that any NDR will be
+caught by the next run no matter when it arrives, while keeping each call fast
+(typically under a second per mailbox).
+
+**Security**
+- Auth is a shared `X-Cron-Token` header (or `?token=` query). The token is auto-generated on
+  the first call and stored in the `settings` table. You can rotate it at any time from
+  **Admin → Security**.
+- The endpoint is **localhost-only by default** (`cron_local_only = 1`). If your scheduler runs
+  on another host, set `cron_local_only = 0` after first locking down the URL to a private
+  network or VPN.
+- A file lock (`storage/locks/cron_refresh.lock`) prevents two runs from clobbering each other.
+
+**Linux crontab example**
+
+```cron
+# Paste into: crontab -e
+# Every 5 minutes, hit the cron endpoint and discard all output.
+*/5 * * * * curl -fsS -H "X-Cron-Token: PUT_TOKEN_HERE" http://127.0.0.1/undeliveredemails/cron/refresh
+```
+
+**Windows Task Scheduler (schtasks) example**
+
+```powershell
+$Action = New-ScheduledTaskAction -Execute 'curl.exe' `
+    -Argument '-fsS -H "X-Cron-Token: PUT_TOKEN_HERE" http://127.0.0.1/undeliveredemails/cron/refresh'
+$Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) `
+    -RepetitionInterval (New-TimeSpan -Minutes 5) `
+    -RepetitionDuration (New-TimeSpan -Days 3650)
+Register-ScheduledTask -TaskName 'EBM cron refresh' -Action $Action -Trigger $Trigger
+```
+
+**Verifying it works**
+
+```bash
+curl -fsS -H "X-Cron-Token: $TOKEN" http://127.0.0.1/undeliveredemails/cron/refresh | jq
+```
+
+You can also see the last run status (timestamp + one-line summary) on the
+**Admin → Security** page under "Automated sync (cron)".
+
 
 ## 🗂 Project Structure
 

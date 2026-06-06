@@ -3,10 +3,8 @@ use App\Core\App;
 use App\Core\Csrf;
 $app = App::instance();
 $isAdmin = ($mode ?? 'viewer') === 'admin';
-$error   = $error ?? null;
 ?>
 <h2 class="auth-card__heading"><?= $isAdmin ? 'Administrator sign in' : 'Sign in' ?></h2>
-<?php if (!empty($error)): ?><div class="alert alert--danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
 <form method="post" action="<?= htmlspecialchars($app->baseUrl($isAdmin ? '/admin/login' : '/login')) ?>" class="form" autocomplete="off">
   <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token()) ?>">
   <?php if (!empty($next)): ?><input type="hidden" name="next" value="<?= htmlspecialchars($next) ?>"><?php endif; ?>

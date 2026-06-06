@@ -79,6 +79,31 @@ final class SecurityController extends Controller
         $this->redirect('/admin/security');
     }
 
+    public function rotateCronToken(Request $req): void
+    {
+        Auth::requireAdmin();
+        $this->verifyCsrf($req);
+        $current = (string)$req->post('current_password', '');
+        $adminHash = (string)Settings::get('admin_password_hash', '');
+        if (!password_verify($current, $adminHash)) {
+            Flash::error('Current admin password is incorrect.');
+            $this->redirect('/admin/security');
+        }
+        \App\Controllers\CronController::rotateToken();
+        Flash::success('Cron token rotated. Update your scheduler with the new value.');
+        $this->redirect('/admin/security');
+    }
+
+    public function updateCronPolicy(Request $req): void
+    {
+        Auth::requireAdmin();
+        $this->verifyCsrf($req);
+        $localOnly = $req->post('cron_local_only') === '1' ? '1' : '0';
+        Settings::set('cron_local_only', $localOnly);
+        Flash::success('Cron access policy saved.');
+        $this->redirect('/admin/security');
+    }
+
     public function updateLimits(Request $req): void
     {
         Auth::requireAdmin();

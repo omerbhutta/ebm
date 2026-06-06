@@ -8,20 +8,22 @@ $app = App::instance();
   <div class="stat-card stat-card--accent">
     <div class="stat-card__label">Suppressed addresses</div>
     <div class="stat-card__value"><?= number_format($supp_total) ?></div>
-    <div class="stat-card__sub"><?= number_format($supp_bounces) ?> total bounce hits</div>
+    <div class="stat-card__sub"><?= number_format($supp_bounces) ?> total bounces across all addresses</div>
   </div>
   <div class="stat-card">
-    <div class="stat-card__label">Added (24 h)</div>
-    <div class="stat-card__value"><?= number_format($supp_last_24h) ?></div>
+    <div class="stat-card__label">New (24 h)</div>
+    <div class="stat-card__value"><?= number_format($supp_added_24h) ?></div>
+    <div class="stat-card__sub">first seen in the last 24 h</div>
   </div>
   <div class="stat-card">
-    <div class="stat-card__label">Added (7 d)</div>
-    <div class="stat-card__value"><?= number_format($supp_last_7d) ?></div>
+    <div class="stat-card__label">New (7 d)</div>
+    <div class="stat-card__value"><?= number_format($supp_added_7d) ?></div>
+    <div class="stat-card__sub">first seen in the last 7 days</div>
   </div>
   <div class="stat-card">
     <div class="stat-card__label">Mailboxes</div>
     <div class="stat-card__value"><?= number_format($mailboxes_active) ?><span class="stat-card__suf"> / <?= number_format($mailboxes_total) ?></span></div>
-    <div class="stat-card__sub"><?= $mailboxes_paused ?> paused</div>
+    <div class="stat-card__sub"><?= number_format($mailboxes_paused) ?> paused</div>
   </div>
 </div>
 

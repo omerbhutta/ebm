@@ -6,6 +6,16 @@ $app = App::instance();
 ?>
 <?php $subtitle = 'Snapshot of suppression, mailboxes, and recent activity.'; include __DIR__ . '/../partials/page-header.php'; ?>
 
+<?php if (!empty($errors)): ?>
+<section class="card card--error">
+  <div class="card__head"><h3 class="card__title">Sync errors</h3></div>
+  <div class="card__body">
+    <ul class="muted small"><?php foreach ($errors as $e): ?><li><?= $e ?></li><?php endforeach; ?></ul>
+    <p class="muted small">Check the <a href="<?= htmlspecialchars($app->baseUrl('/admin/graph')) ?>">Graph API</a> page or the <a href="<?= htmlspecialchars($app->baseUrl('/admin/logs')) ?>">activity log</a> for details.</p>
+  </div>
+</section>
+<?php endif; ?>
+
 <div class="stat-grid">
   <div class="stat-card stat-card--accent">
     <div class="stat-card__label">Suppressed addresses</div>
@@ -13,11 +23,11 @@ $app = App::instance();
     <div class="stat-card__sub"><?= number_format($bounces ?? 0) ?> total bounce hits</div>
   </div>
   <div class="stat-card">
-    <div class="stat-card__label">Added (last 24 h)</div>
+    <div class="stat-card__label">NDRs received (last 24 h)</div>
     <div class="stat-card__value"><?= number_format($last24 ?? 0) ?></div>
   </div>
   <div class="stat-card">
-    <div class="stat-card__label">Added (last 7 days)</div>
+    <div class="stat-card__label">NDRs received (last 7 days)</div>
     <div class="stat-card__value"><?= number_format($last7 ?? 0) ?></div>
   </div>
   <div class="stat-card">

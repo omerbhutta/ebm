@@ -97,6 +97,15 @@ $displayInitial = strtoupper(substr($displayName, 0, 1));
 
 <main class="main" id="main" tabindex="-1">
   <div class="main__inner">
+    <?php if (!empty($_flash)): ?>
+      <div class="flash-stack" role="status" aria-live="polite">
+        <?php foreach ($_flash as $f):
+          $ft = htmlspecialchars($f['type'] ?? 'info');
+          $fm = $f['message'] ?? ''; ?>
+          <div class="flash flash--<?= $ft ?>"><?= $fm ?></div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
     <?= $body ?? '' ?>
   </div>
   <footer class="footer">

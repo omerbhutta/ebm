@@ -35,6 +35,13 @@ $csrf         = \App\Core\Csrf::token();
         <p><?= htmlspecialchars($appTag) ?></p>
       </div>
       <div class="auth-card__body">
+        <?php if (!empty($_flash)): ?>
+          <?php foreach ($_flash as $f):
+            $ft = htmlspecialchars($f['type'] ?? 'info');
+            $fm = $f['message'] ?? ''; ?>
+            <div class="alert alert--<?= $ft ?>" role="alert"><?= $fm ?></div>
+          <?php endforeach; ?>
+        <?php endif; ?>
         <?= $body ?? '' ?>
       </div>
       <div class="auth-card__foot">

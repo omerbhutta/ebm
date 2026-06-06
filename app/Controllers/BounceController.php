@@ -140,11 +140,13 @@ final class BounceController extends Controller
         $mailbox = (string)$req->query('mailbox', '');
         if ($id === '' || $mailbox === '') {
             Response::json(['error' => 'Missing id or mailbox'], 400);
+            return;
         }
 
         $known = MailboxService::findByEmail($mailbox);
         if (!$known) {
             Response::json(['error' => 'Unknown mailbox'], 403);
+            return;
         }
 
         $cacheKey = 'body_' . md5($mailbox . '|' . $id);
@@ -159,6 +161,7 @@ final class BounceController extends Controller
         $r = GraphService::fetchMessage($mailbox, $id);
         if (!$r['ok']) {
             Response::json(['error' => $r['error']], 500);
+            return;
         }
         $msg = $r['message'];
         $failed = BounceService::extractFailedRecipients($msg, $mailbox);

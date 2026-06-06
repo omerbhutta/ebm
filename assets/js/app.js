@@ -147,5 +147,59 @@
     });
   }
 
+  // ----- Cron token reveal + copy -----
+  var cronReveal = document.getElementById('cronTokenReveal');
+  if (cronReveal) {
+    cronReveal.addEventListener('click', function () {
+      var v = cronReveal.getAttribute('data-current-key') || '';
+      var slot = document.getElementById('cronTokenValue');
+      if (slot) slot.textContent = v || '(not generated yet)';
+    });
+  }
+  var cronCopy = document.getElementById('cronTokenCopy');
+  if (cronCopy) {
+    cronCopy.addEventListener('click', function () {
+      var v = cronCopy.getAttribute('data-current-key') || '';
+      if (!v) return;
+      var done = function () {
+        var orig = cronCopy.textContent;
+        cronCopy.textContent = 'Copied!';
+        setTimeout(function () { cronCopy.textContent = orig; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(v).then(done, function () { fallback(v); done(); });
+      } else { fallback(v); done(); }
+      function fallback(t) {
+        var ta = document.createElement('textarea');
+        ta.value = t; document.body.appendChild(ta);
+        ta.select(); try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+    });
+  }
+
+  // ----- Test cron endpoint from this page -----
+  var cronBtn = document.getElementById('cronTestBtn');
+  if (cronBtn) {
+    cronBtn.addEventListener('click', function () {
+      var endpoint = cronBtn.getAttribute('data-endpoint');
+      var token    = cronBtn.getAttribute('data-token');
+      var out      = document.getElementById('cronTestResult');
+      if (!endpoint || !token) { if (out) out.textContent = 'No token configured yet.'; return; }
+      cronBtn.disabled = true;
+      var orig = cronBtn.textContent;
+      cronBtn.textContent = 'Running…';
+      if (out) out.textContent = 'POST ' + endpoint + ' …';
+      fetch(endpoint, { method: 'GET', headers: { 'X-Cron-Token': token, 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (r) { return r.text().then(function (body) { return { status: r.status, body: body }; }); })
+        .then(function (j) {
+          try { var obj = JSON.parse(j.body); j.body = JSON.stringify(obj, null, 2); } catch (e) {}
+          if (out) out.textContent = 'HTTP ' + j.status + '\n' + j.body;
+        })
+        .catch(function (e) { if (out) out.textContent = 'Network error: ' + e.message; })
+        .then(function () { cronBtn.disabled = false; cronBtn.textContent = orig; });
+    });
+  }
+
   // Search/filters only submit on Apply button click (no auto-submit on typing).
 })();

@@ -25,6 +25,7 @@ use App\Controllers\DashboardController;
 use App\Controllers\BounceController;
 use App\Controllers\SuppressionController;
 use App\Controllers\ApiController;
+use App\Controllers\CronController;
 
 use App\Controllers\Admin\AdminController;
 use App\Controllers\Admin\MailboxController;
@@ -117,6 +118,8 @@ $router->post('/admin/system/flush-cache',    [SystemController::class, 'flushCa
 $router->get ('/admin/security',              [SecurityController::class, 'index']);
 $router->post('/admin/security/password',     [SecurityController::class, 'changePassword']);
 $router->post('/admin/security/rotate-key',   [SecurityController::class, 'rotateApiKey']);
+$router->post('/admin/security/rotate-cron',  [SecurityController::class, 'rotateCronToken']);
+$router->post('/admin/security/cron-policy',  [SecurityController::class, 'updateCronPolicy']);
 $router->post('/admin/security/limits',       [SecurityController::class, 'updateLimits']);
 
 $router->get ('/admin/logs',                  [LogController::class, 'index']);
@@ -126,4 +129,12 @@ $router->post('/admin/logs/prune',            [LogController::class, 'prune']);
 // External API (used by sending systems like LIS)
 // ----------------------------------------------------------
 $router->any ('/api/check',                   [ApiController::class, 'check']);
-$router->any ('/check.php',                   [ApiController::class, 'check']);   // backward-compat
+$router->any ('/check',                       [ApiController::class, 'check']);   // clean alias of /check.php
+$router->any ('/check.php',                   [ApiController::class, 'check']);   // backward-compat for LIS
+
+// ----------------------------------------------------------
+// External cron (automated sync every 5 min, 12h window)
+// Auth: X-Cron-Token header (or ?token=) + localhost-only by default.
+// Returns minimal JSON — does NOT serve bounce data.
+// ----------------------------------------------------------
+$router->any ('/cron/refresh',                [CronController::class, 'refresh']);

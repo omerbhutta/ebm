@@ -131,21 +131,34 @@ final class SuppressionService
                 SELECT
                     COUNT(*) AS total,
                     COALESCE(SUM(bounce_count), 0) AS total_bounces,
-                    COUNT(CASE WHEN last_seen >= NOW() - INTERVAL 7 DAY THEN 1 END) AS last_7d,
-                    COUNT(CASE WHEN last_seen >= NOW() - INTERVAL 1 DAY THEN 1 END) AS last_24h,
+                    COUNT(CASE WHEN first_seen >= NOW() - INTERVAL 7 DAY THEN 1 END) AS added_7d,
+                    COUNT(CASE WHEN first_seen >= NOW() - INTERVAL 1 DAY THEN 1 END) AS added_24h,
+                    COUNT(CASE WHEN last_seen  >= NOW() - INTERVAL 7 DAY THEN 1 END) AS seen_7d,
+                    COUNT(CASE WHEN last_seen  >= NOW() - INTERVAL 1 DAY THEN 1 END) AS seen_24h,
                     MIN(first_seen) AS oldest,
                     MAX(last_seen)  AS newest
                 FROM suppression_list
             ")->fetch();
-            $topDomains = $pdo->query("
-                SELECT SUBSTRING_INDEX(email, '@', -1) AS domain, COUNT(*) AS c
+
+            $topRows = $pdo->query("
+                SELECT SUBSTRING_INDEX(email, '@', -1) AS domain, COUNT(*) AS hits, SUM(bounce_count) AS bounces
                 FROM suppression_list
-                GROUP BY domain ORDER BY c DESC LIMIT 5
+                GROUP BY domain
+                ORDER BY hits DESC, domain ASC
+                LIMIT 8
             ")->fetchAll();
+            $totalHits = array_sum(array_column($topRows, 'hits')) ?: 1;
+            $topDomains = array_map(fn($r) => [
+                'domain'  => $r['domain'],
+                'count'   => (int)$r['hits'],
+                'bounces' => (int)$r['bounces'],
+                'pct'     => (int)round(((int)$r['hits'] / $totalHits) * 100),
+            ], $topRows);
+
             $lastSync = $pdo->query("SELECT MAX(processed_at) FROM processed_ndrs")->fetchColumn();
             return [
                 'summary'     => $row ?: [],
-                'top_domains' => $topDomains ?: [],
+                'top_domains' => $topDomains,
                 'last_sync'   => $lastSync ?: null,
             ];
         } catch (\Throwable $e) {

@@ -50,7 +50,9 @@ RedirectMatch 404 ^/storage/
     RewriteEngine On
 
     # Redirect requests with .php extension to clean URL
+    # /check.php is exempt — legacy API shim for LIS integrations
     RewriteCond %{THE_REQUEST} \s/+([^\s]+?)\.php[\s?] [NC]
+    RewriteCond %{REQUEST_URI} !/check\.php$ [NC]
     RewriteRule ^ /%1 [R=301,L,NE]
 
     # Allow existing files and directories to be served as-is

@@ -87,10 +87,10 @@ $app = App::instance();
 
 <?php if (\App\Core\Auth::isAdmin()): ?>
 <dialog id="addEmail" class="dialog">
-  <form method="dialog" class="dialog__inner">
+  <div class="dialog__inner">
     <header class="dialog__head">
       <h3>Add to suppression</h3>
-      <button class="iconbtn" type="submit" value="close" aria-label="Close">✕</button>
+      <button class="iconbtn" type="button" data-modal-close aria-label="Close">✕</button>
     </header>
     <div class="dialog__body">
       <form method="post" action="<?= htmlspecialchars($app->baseUrl('/suppression/add')) ?>" class="form" id="addEmailForm">
@@ -105,7 +105,7 @@ $app = App::instance();
         </div>
       </form>
     </div>
-  </form>
+  </div>
 </dialog>
 <?php endif; ?>
 
