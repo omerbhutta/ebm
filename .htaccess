@@ -1,0 +1,83 @@
+# Email Bounce Monitor (EBM)
+# Apache configuration
+
+# ============================================================
+# Security headers
+# ============================================================
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# ============================================================
+# Disable directory listing
+# ============================================================
+Options -Indexes -MultiViews
+
+# ============================================================
+# Default index
+# ============================================================
+DirectoryIndex index.php
+
+# ============================================================
+# Protect dotfiles, backup files, version control
+# ============================================================
+<FilesMatch "^\.|composer\.(json|lock)$|\.(bak|sql|md|log|sh|env|ini|conf|inc)$">
+    Require all denied
+</FilesMatch>
+
+# Allow README.md to be served (so GitHub renders work locally too is optional;
+# block .md from being downloaded as raw to be safe):
+<Files "README.md">
+    Require all denied
+</Files>
+
+# ============================================================
+# Protect framework folders
+# ============================================================
+RedirectMatch 404 ^/app/
+RedirectMatch 404 ^/config/
+RedirectMatch 404 ^/database/
+RedirectMatch 404 ^/storage/
+
+# ============================================================
+# URL Rewriting — clean URLs, hide .php
+# ============================================================
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Redirect requests with .php extension to clean URL
+    RewriteCond %{THE_REQUEST} \s/+([^\s]+?)\.php[\s?] [NC]
+    RewriteRule ^ /%1 [R=301,L,NE]
+
+    # Allow existing files and directories to be served as-is
+    # (assets, the front controller itself, check.php shim)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Route everything else through the front controller
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+# ============================================================
+# Caching for static assets
+# ============================================================
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+</IfModule>
+
+# ============================================================
+# Compression
+# ============================================================
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json
+</IfModule>

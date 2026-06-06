@@ -1,0 +1,62 @@
+# ============================================================
+# EBM .gitignore
+# Anything matched here will NOT be pushed to a remote.
+# ============================================================
+
+# PHP runtime
+/vendor/
+/composer.lock
+/.phpunit.result.cache
+/.phpunit.cache/
+
+# Environment & secrets
+/.env
+/.env.*
+/.env.example
+/config/installed.php
+/config/database.php
+/config/secret.php
+
+# Root /cache (legacy NDR cache)
+/cache/*
+!/cache/.gitkeep
+!/cache/.htaccess
+!/cache/index.html
+
+# /storage/cache (Graph tokens, message bodies, mailbox scans)
+/storage/cache/*
+!/storage/cache/.gitkeep
+!/storage/cache/.htaccess
+
+# /storage/logs (may contain user IPs, login events, tenant IDs)
+/storage/logs/*
+!/storage/logs/.gitkeep
+!/storage/logs/.htaccess
+
+# /storage/locks (rate-limit & install lock)
+/storage/locks/*
+!/storage/locks/.gitkeep
+!/storage/locks/.htaccess
+
+# IDE & OS junk
+/nbproject/
+/.idea/
+/.vscode/
+/.project
+/.classpath
+/.settings/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+*.bak
+*.tmp
+*.orig
+*.rej
+
+# Test artefacts
+/tests/output/
+/tests/coverage/

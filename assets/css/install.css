@@ -1,0 +1,218 @@
+/* ======================================================================
+   EBM Installation Wizard — standalone stylesheet
+   ====================================================================== */
+
+:root {
+  --bg:         #0b1220;
+  --bg-2:       #131c2e;
+  --surface:    #ffffff;
+  --surface-2:  #f5f7fb;
+  --border:     #d8dde6;
+  --border-soft:#e6e9f0;
+  --text:       #0f172a;
+  --text-soft:  #334155;
+  --text-mute:  #64748b;
+  --accent:     #06b6d4;
+  --accent-2:   #0891b2;
+  --ok:         #16a34a;
+  --warn:       #d97706;
+  --danger:     #dc2626;
+  --info:       #2563eb;
+  --sidebar-bg: linear-gradient(180deg, #061122 0%, #0b1a30 100%);
+  --sidebar-text: #d6dde8;
+  --shadow: 0 18px 40px -16px rgba(15,23,42,0.18);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body.install-body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px; line-height: 1.5;
+  color: var(--text);
+  background: #eef1f6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent-2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
+h1, h2, h3 { margin: 0 0 0.5rem; font-weight: 600; }
+h1 { font-size: 1.4rem; }
+h3 { font-size: 1rem; }
+
+/* Shell */
+.install-shell { min-height: 100vh; display: grid; grid-template-columns: 320px 1fr; }
+@media (max-width: 900px) { .install-shell { grid-template-columns: 1fr; } }
+
+/* Sidebar */
+.install-sidebar { background: var(--sidebar-bg); color: var(--sidebar-text); padding: 28px 22px; display: flex; flex-direction: column; }
+.install-brand { display: flex; gap: 12px; align-items: center; margin-bottom: 28px; }
+.brand-mark { font-size: 28px; line-height: 1; }
+.brand-name { font-weight: 700; font-size: 1.1rem; }
+.brand-sub  { font-size: 12px; color: #94a3b8; }
+
+.install-steps { list-style: none; padding: 0; margin: 0; counter-reset: step; }
+.install-steps li { counter-increment: step; position: relative; padding: 11px 12px 11px 48px; border-radius: 8px; color: #b8c1d4; margin-bottom: 4px; font-size: 14px; transition: background .15s; }
+.install-steps li::before { content: counter(step); position: absolute; left: 12px; top: 11px; width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,0.06); color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12.5px; }
+.install-steps li.active { background: rgba(6,182,212,0.12); color: #fff; }
+.install-steps li.active::before { background: var(--accent); color: white; }
+.install-steps li.done { color: #d2e3d6; }
+.install-steps li.done::before { content: "✓"; background: var(--ok); color: white; }
+
+.install-footer { margin-top: auto; padding-top: 24px; font-size: 12px; color: #94a3b8; }
+.install-footer p { margin: 4px 0; }
+.install-version { opacity: 0.7; font-family: ui-monospace, monospace; }
+
+/* Main */
+.install-main { padding: 36px 32px; display: flex; flex-direction: column; align-items: center; }
+.install-copyright { margin-top: 32px; color: var(--text-mute); font-size: 12px; }
+
+/* Card */
+.install-card { width: 100%; max-width: 720px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 28px 30px; }
+.install-hero { text-align: center; margin-bottom: 22px; }
+.hero-emoji { font-size: 48px; line-height: 1; margin-bottom: 8px; }
+.hero-tagline { color: var(--text-mute); max-width: 540px; margin: 8px auto 0; }
+
+.hero-feature-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); margin: 24px 0; }
+@media (max-width: 600px) { .hero-feature-grid { grid-template-columns: 1fr; } }
+.feature { background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 10px; padding: 14px; }
+.feature-ico { font-size: 24px; margin-bottom: 4px; }
+.feature h3 { margin-bottom: 4px; }
+.feature p { margin: 0; color: var(--text-mute); font-size: 13px; }
+
+.install-checklist { background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 10px; padding: 14px 18px; margin: 18px 0; }
+.install-checklist h3 { margin-bottom: 6px; }
+.install-checklist ul { padding-left: 1.2rem; margin: 0; }
+.install-checklist li { margin: 3px 0; }
+
+.install-actions { display: flex; gap: 10px; justify-content: center; margin-top: 24px; }
+
+/* Form */
+.form { display: flex; flex-direction: column; gap: 12px; }
+.form__row { display: flex; gap: 10px; }
+.form__field { display: flex; flex-direction: column; gap: 4px; }
+.form__label { font-size: 12px; color: var(--text-soft); font-weight: 500; }
+.form__control, .form input[type=text], .form input[type=password], .form input[type=email], .form input[type=number], .form select, .form textarea {
+  background: white;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 10px;
+  font: inherit;
+  width: 100%;
+}
+.form__control:focus, .form input:focus, .form select:focus, .form textarea:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+.form small { color: var(--text-mute); font-size: 12px; }
+.grid-2 { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+@media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s, color .15s, transform .05s; }
+.btn:hover { background: #e7ebf2; text-decoration: none; }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-2); border-color: var(--accent-2); color: white; }
+.btn-ghost { background: transparent; }
+.btn-lg { padding: 11px 18px; font-size: 15px; }
+
+/* Flashes */
+.install-flash { width: 100%; max-width: 720px; padding: 10px 14px; border-radius: 8px; border: 1px solid; margin-bottom: 12px; font-size: 13.5px; }
+.install-flash.flash-success { background: #f0fdf4; border-color: #86efac; color: #166534; }
+.install-flash.flash-error,
+.install-flash.flash-danger  { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+.install-flash.flash-warning { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.install-flash.flash-info    { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+
+/* Requirements list */
+.req-list { list-style: none; padding: 0; margin: 12px 0; }
+.req-list li { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+.req-list li:last-child { border-bottom: none; }
+.req-list .ok   { color: var(--ok); font-weight: 700; }
+.req-list .fail { color: var(--danger); font-weight: 700; }
+.req-list .name { flex: 1; }
+.req-list .desc { color: var(--text-mute); font-size: 12px; }
+
+/* Passwords output */
+.password-output { display: flex; gap: 8px; align-items: center; padding: 10px 12px; background: var(--surface-2); border: 1px dashed var(--border); border-radius: 8px; font-family: ui-monospace, monospace; font-size: 14px; }
+.password-output code { background: transparent; padding: 0; font-size: 14px; }
+
+/* KV summary */
+.kv { display: grid; grid-template-columns: 160px 1fr; gap: 6px 12px; font-size: 13px; margin: 8px 0; }
+.kv .k { color: var(--text-mute); }
+.kv .v { color: var(--text); }
+
+/* Success state */
+.success-hero { text-align: center; margin-bottom: 18px; }
+.success-hero .ok-mark { font-size: 56px; line-height: 1; }
+.success-hero h1 { color: var(--ok); margin: 8px 0; }
+
+.kv code { font-size: 12.5px; }
+
+/* ----- Card head ----- */
+.install-card-head { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border-soft); }
+.install-card-head h1 { margin-bottom: 4px; }
+.install-card-head p { margin: 0; color: var(--text-mute); }
+
+/* ----- Requirements table ----- */
+.req-table { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+.req-row { display: grid; grid-template-columns: 36px 1fr 200px; gap: 10px; align-items: center; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 8px; font-size: 13.5px; }
+.req-row.pass .req-status { color: var(--ok); font-weight: 800; font-size: 18px; }
+.req-row.fail .req-status { color: var(--danger); font-weight: 800; font-size: 18px; }
+.req-name { font-weight: 500; }
+.req-current { color: var(--text-mute); font-size: 12.5px; text-align: right; font-family: ui-monospace, monospace; }
+@media (max-width: 600px) { .req-row { grid-template-columns: 30px 1fr; } .req-current { grid-column: 2; text-align: left; } }
+
+/* ----- Install alerts ----- */
+.install-alert { padding: 10px 14px; border-radius: 8px; border: 1px solid; margin: 12px 0; font-size: 13.5px; }
+.install-alert-error   { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+.install-alert-success { background: #f0fdf4; border-color: #86efac; color: #166534; }
+.install-alert-info    { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+.install-alert-warning { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.install-alert strong  { color: inherit; }
+
+/* ----- Form ----- */
+.install-form { display: flex; flex-direction: column; gap: 14px; }
+.form-field { display: flex; flex-direction: column; gap: 4px; }
+.form-field label { font-size: 12px; color: var(--text-soft); font-weight: 500; }
+.form-field input, .form-field select, .form-field textarea {
+  background: white;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 10px;
+  font: inherit;
+  width: 100%;
+}
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+.form-field small { color: var(--text-mute); font-size: 12px; }
+.form-grid { display: grid; gap: 12px; }
+.form-grid.two { grid-template-columns: 1fr 1fr; }
+@media (max-width: 600px) { .form-grid.two { grid-template-columns: 1fr; } }
+
+/* ----- Buttons ----- */
+.btn-secondary { background: #475569; border-color: #475569; color: white; }
+.btn-secondary:hover { background: #334155; border-color: #334155; color: white; }
+
+/* ----- Hint details ----- */
+.install-hint { background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 14px; margin: 12px 0; }
+.install-hint summary { cursor: pointer; font-weight: 600; color: var(--text-soft); }
+.install-hint summary:hover { color: var(--accent-2); }
+.install-hint ol { margin: 8px 0 0; padding-left: 1.2rem; }
+.install-hint li { margin: 3px 0; }
+
+/* ----- Fieldset ----- */
+.install-fieldset { border: 1px solid var(--border-soft); border-radius: 10px; padding: 14px 16px; margin: 0; background: var(--surface-2); }
+.install-fieldset legend { padding: 0 6px; font-weight: 600; }
+.install-fieldset .fieldset-desc { margin: 0 0 8px; color: var(--text-mute); font-size: 12.5px; }
+
+/* ----- Finish grid ----- */
+.finish-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+@media (max-width: 600px) { .finish-grid { grid-template-columns: 1fr; } }
+.finish-card { display: block; padding: 18px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 10px; color: var(--text); text-decoration: none; transition: border-color .15s, transform .05s; }
+.finish-card:hover { border-color: var(--accent); text-decoration: none; }
+.finish-card:active { transform: translateY(1px); }
+.finish-emoji { font-size: 28px; margin-bottom: 6px; }
+.finish-card h3 { margin-bottom: 4px; }
+.finish-card p { margin: 0 0 8px; color: var(--text-mute); font-size: 13px; }
+.finish-link { color: var(--accent-2); font-weight: 600; font-size: 13.5px; }
