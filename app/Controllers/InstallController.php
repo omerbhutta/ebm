@@ -225,6 +225,13 @@ final class InstallController extends Controller
             // Lock installer
             InstallService::lock();
 
+            // Upgrade .htaccess from the minimal shipping version to the full
+            // production version (security headers, caching, folder protection).
+            // Non-fatal: install still succeeds if the file is read-only.
+            if (!InstallService::writeHtaccess()) {
+                Logger::warn('install.htaccess', 'Could not write production .htaccess; minimal shipping version still in place.');
+            }
+
             // Clear session progress
             Session::forget(self::SESSION_KEY);
 

@@ -183,6 +183,100 @@ PHP;
         ])) !== false;
     }
 
+    /**
+     * The full production .htaccess written at the end of a successful install.
+     * The shipping .htaccess in the repo is intentionally minimal so the installer
+     * can always load — even on restrictive Apache setups. After install completes,
+     * the installer overwrites it with this hardened version.
+     */
+    public const HTACCESS_PRODUCTION = <<<'HTACCESS'
+# Email Bounce Monitor (EBM) — production .htaccess
+# Auto-written by the installer. Safe to customise; if you delete it,
+# the next install (or a manual run of InstallService::writeHtaccess())
+# will restore this version.
+
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+
+# URL rewriting — clean URLs, hide .php
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # /something.php → /something (301), keep /check.php as legacy shim
+    RewriteCond %{THE_REQUEST} \s/+([^\s]+?)\.php[\s?] [NC]
+    RewriteCond %{REQUEST_URI} !/check\.php$ [NC]
+    RewriteRule ^ /%1 [R=301,L,NE]
+
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+# Block framework folders (path-relative, works in subfolder installs)
+RedirectMatch 404 ^/?app/
+RedirectMatch 404 ^/?config/
+RedirectMatch 404 ^/?database/
+RedirectMatch 404 ^/?storage/
+
+# Block dotfiles + sensitive extensions
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+<FilesMatch "\.(sql|log|sh|env|ini|conf|inc|bak)$">
+    Require all denied
+</FilesMatch>
+<Files "README.md">
+    Require all denied
+</Files>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Caching
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+</IfModule>
+
+# Compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json
+</IfModule>
+HTACCESS;
+
+    /**
+     * Write the production .htaccess. Called at the end of a successful install.
+     * If it fails (e.g. file is read-only on the prod host), the install still
+     * succeeds and a warning is logged — the app is fully functional with the
+     * minimal shipping htaccess too.
+     */
+    public static function writeHtaccess(): bool
+    {
+        $path = App::instance()->basePath('.htaccess');
+        $content = self::HTACCESS_PRODUCTION;
+        // Always normalise to LF + no BOM, regardless of how the existing file
+        // was checked out.
+        if (substr($content, 0, 3) === "\xEF\xBB\xBF") {
+            $content = substr($content, 3);
+        }
+        $content = str_replace("\r\n", "\n", $content);
+        $ok = @file_put_contents($path, $content) !== false;
+        if ($ok) {
+            @chmod($path, 0644);
+        }
+        return $ok;
+    }
+
     public static function isLocked(): bool
     {
         return is_file(App::instance()->storagePath('locks/install.lock'))

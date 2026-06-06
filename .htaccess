@@ -1,88 +1,23 @@
-# Email Bounce Monitor (EBM)
-# Apache configuration.
+# Email Bounce Monitor (EBM) — minimal install .htaccess
 #
-# IMPORTANT — keep this file in LF (Unix) line endings. Apache on Windows
-# chokes on CRLF in some directives and on a UTF-8 BOM. See .gitattributes.
+# This is the *shipping* version, kept as small as possible so the
+# installer always loads, even on restrictive Apache setups.
+# The full production rules (security headers, caching, compression,
+# framework-folder protection, etc.) are written automatically by the
+# installer at the end of a successful setup.
+#
+# IMPORTANT — keep this file in LF (Unix) line endings; see .gitattributes.
 
-# ============================================================
-# Disable directory listing
-# ============================================================
-Options -Indexes -MultiViews
-
-# ============================================================
-# Default index
-# ============================================================
 DirectoryIndex index.php
 
-# ============================================================
-# URL Rewriting — clean URLs, hide .php
-# ============================================================
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Strip a trailing .php from incoming requests → clean URL
-    # /check.php is exempt — legacy API shim for LIS integrations
-    RewriteCond %{THE_REQUEST} \s/+([^\s]+?)\.php[\s?] [NC]
-    RewriteCond %{REQUEST_URI} !/check\.php$ [NC]
-    RewriteRule ^ /%1 [R=301,L,NE]
-
-    # Serve existing files / dirs as-is (assets, the front controller, check.php)
+    # Serve existing files / dirs as-is
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
     # Everything else → front controller
     RewriteRule ^ index.php [L,QSA]
-</IfModule>
-
-# ============================================================
-# Protect framework folders
-# Pattern is path-relative with optional leading slash so it works
-# both at the document root and in subfolder installs.
-# ============================================================
-RedirectMatch 404 ^/?app/
-RedirectMatch 404 ^/?config/
-RedirectMatch 404 ^/?database/
-RedirectMatch 404 ^/?storage/
-
-# ============================================================
-# Protect dotfiles + sensitive extensions
-# Split into two patterns for safer regex parsing.
-# ============================================================
-<FilesMatch "^\.">
-    Require all denied
-</FilesMatch>
-<FilesMatch "\.(sql|log|sh|env|ini|conf|inc|bak)$">
-    Require all denied
-</FilesMatch>
-<Files "README.md">
-    Require all denied
-</Files>
-
-# ============================================================
-# Security headers
-# ============================================================
-<IfModule mod_headers.c>
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
-</IfModule>
-
-# ============================================================
-# Caching for static assets
-# ============================================================
-<IfModule mod_expires.c>
-    ExpiresActive On
-    ExpiresByType text/css "access plus 7 days"
-    ExpiresByType application/javascript "access plus 7 days"
-    ExpiresByType image/svg+xml "access plus 30 days"
-    ExpiresByType image/png "access plus 30 days"
-    ExpiresByType image/jpeg "access plus 30 days"
-</IfModule>
-
-# ============================================================
-# Compression
-# ============================================================
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json
 </IfModule>
