@@ -29,10 +29,16 @@ $displayInitial = strtoupper(substr($displayName, 0, 1));
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow">
 <title><?= htmlspecialchars(($title ?? '') . ' · ' . $appName) ?></title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2306b6d4'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EE%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23ff4a17'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EE%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="<?= htmlspecialchars($assetBase) ?>/css/app.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="layout-app" data-theme-toggle="<?= $themeToggle ? '1' : '0' ?>" data-login-toggle="<?= $loginToggle ? '1' : '0' ?>" data-csrf="<?= htmlspecialchars($csrf) ?>" data-base-url="<?= htmlspecialchars($app->baseUrl()) ?>">
+<div class="bg-orbs" aria-hidden="true">
+  <div class="bg-orb bg-orb--1"></div>
+  <div class="bg-orb bg-orb--2"></div>
+  <div class="bg-orb bg-orb--3"></div>
+</div>
 
 <header class="navbar" role="banner">
   <a class="navbar__brand" href="<?= htmlspecialchars($app->baseUrl('/dashboard')) ?>">
