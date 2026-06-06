@@ -5,36 +5,39 @@ $app = App::instance();
 ?>
 <?php include __DIR__ . '/../partials/page-header.php'; ?>
 
-<div class="toolbar">
-  <form method="get" action="<?= htmlspecialchars($app->baseUrl('/suppression')) ?>" class="filter-bar">
-    <div class="filter-bar__row">
-      <label class="form__field" style="flex:1 1 280px">
-        <span class="form__label">Search</span>
-        <input class="form__control" type="search" name="q" value="<?= htmlspecialchars($q ?? '') ?>" placeholder="Email address…">
-      </label>
-      <label class="form__field">
-        <span class="form__label">Per page</span>
-        <select class="form__control" name="per">
-          <?php foreach ([10,25,50,100,200] as $n): ?>
-            <option value="<?= $n ?>" <?= (int)($per ?? 50) === $n ? 'selected' : '' ?>><?= $n ?></option>
-          <?php endforeach; ?>
-        </select>
-      </label>
-      <div class="form__field filter-bar__actions">
-        <button class="btn btn--primary" type="submit">Apply</button>
-        <a class="btn btn--ghost" href="<?= htmlspecialchars($app->baseUrl('/suppression')) ?>">Reset</a>
-      </div>
-    </div>
-  </form>
-
-  <div class="toolbar__actions">
-    <a class="btn btn--ghost btn--sm" href="<?= htmlspecialchars($app->baseUrl('/suppression')) ?>?<?= htmlspecialchars(http_build_query(array_merge($_GET, ['export' => 'csv']))) ?>">Export CSV</a>
-    <a class="btn btn--ghost btn--sm" href="<?= htmlspecialchars($app->baseUrl('/suppression')) ?>?<?= htmlspecialchars(http_build_query(array_merge($_GET, ['export' => 'xls']))) ?>">Export Excel</a>
-    <?php if (\App\Core\Auth::isAdmin()): ?>
-    <button class="btn btn--ghost btn--sm" data-modal-open="#addEmail">+ Add</button>
-    <?php endif; ?>
+<form method="get" action="<?= htmlspecialchars($app->baseUrl('/suppression')) ?>" class="filter-toolbar">
+  <div class="filter-toolbar__search">
+    <svg class="filter-toolbar__search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="m21 21-4.3-4.3"></path>
+    </svg>
+    <input class="form__control filter-toolbar__search-input" type="search" name="q" value="<?= htmlspecialchars($q ?? '') ?>" placeholder="Search email address…" aria-label="Search suppression list">
   </div>
-</div>
+
+  <div class="filter-toolbar__per">
+    <label class="filter-toolbar__per-label" for="perSelect">Show</label>
+    <select class="form__control form__control--sm filter-toolbar__per-select" name="per" id="perSelect">
+      <?php foreach ([10,25,50,100,200] as $n): ?>
+        <option value="<?= $n ?>" <?= (int)($per ?? 50) === $n ? 'selected' : '' ?>><?= $n ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+
+  <button class="btn btn--primary btn--sm filter-toolbar__apply" type="submit">Apply</button>
+  <a class="btn btn--ghost btn--sm filter-toolbar__reset" href="<?= htmlspecialchars($app->baseUrl('/suppression')) ?>">Reset</a>
+
+  <span class="filter-toolbar__divider" aria-hidden="true"></span>
+
+  <a class="btn btn--ghost btn--sm" href="<?= htmlspecialchars($app->baseUrl('/suppression')) ?>?<?= htmlspecialchars(http_build_query(array_merge($_GET, ['export' => 'csv']))) ?>">Export CSV</a>
+  <a class="btn btn--ghost btn--sm" href="<?= htmlspecialchars($app->baseUrl('/suppression')) ?>?<?= htmlspecialchars(http_build_query(array_merge($_GET, ['export' => 'xls']))) ?>">Export Excel</a>
+
+  <?php if (\App\Core\Auth::isAdmin()): ?>
+  <button class="btn btn--primary btn--sm" type="button" data-modal-open="#addEmail">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    Add
+  </button>
+  <?php endif; ?>
+</form>
 
 <section class="card">
   <div class="card__head">

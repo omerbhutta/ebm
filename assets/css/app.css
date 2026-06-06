@@ -630,6 +630,74 @@ h3 { font-size: 1.1rem; }
   align-items: center;
 }
 
+/* Unified inline filter toolbar (one row, wraps on small screens) */
+.filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 0 0 16px;
+  box-shadow: var(--shadow);
+}
+.filter-toolbar__search {
+  position: relative;
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+.filter-toolbar__search-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-mute);
+  pointer-events: none;
+}
+.filter-toolbar__search-input {
+  padding-left: 12px;
+  padding-right: 36px;
+  height: 36px;
+  width: 100%;
+}
+.filter-toolbar__per {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.filter-toolbar__per-label {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.filter-toolbar__per-select {
+  width: auto;
+  min-width: 70px;
+  height: 36px;
+}
+.filter-toolbar__apply,
+.filter-toolbar__reset {
+  height: 36px;
+}
+.filter-toolbar__divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  margin: 0 4px;
+  flex: 0 0 auto;
+}
+@media (max-width: 720px) {
+  .filter-toolbar__divider { display: none; }
+  .filter-toolbar__search { flex: 1 1 100%; }
+}
+
 .pager {
   display: flex;
   align-items: center;
