@@ -1,16 +1,8 @@
 # Email Bounce Monitor (EBM)
-# Apache configuration
-
-# ============================================================
-# Security headers
-# ============================================================
-<IfModule mod_headers.c>
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
-    Header set X-XSS-Protection "1; mode=block"
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
-    Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
-</IfModule>
+# Apache configuration.
+#
+# IMPORTANT — keep this file in LF (Unix) line endings. Apache on Windows
+# chokes on CRLF in some directives and on a UTF-8 BOM. See .gitattributes.
 
 # ============================================================
 # Disable directory listing
@@ -23,46 +15,57 @@ Options -Indexes -MultiViews
 DirectoryIndex index.php
 
 # ============================================================
-# Protect dotfiles, backup files, version control
-# ============================================================
-<FilesMatch "^\.|composer\.(json|lock)$|\.(bak|sql|md|log|sh|env|ini|conf|inc)$">
-    Require all denied
-</FilesMatch>
-
-# Allow README.md to be served (so GitHub renders work locally too is optional;
-# block .md from being downloaded as raw to be safe):
-<Files "README.md">
-    Require all denied
-</Files>
-
-# ============================================================
-# Protect framework folders
-# ============================================================
-RedirectMatch 404 ^/app/
-RedirectMatch 404 ^/config/
-RedirectMatch 404 ^/database/
-RedirectMatch 404 ^/storage/
-
-# ============================================================
 # URL Rewriting — clean URLs, hide .php
 # ============================================================
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Redirect requests with .php extension to clean URL
+    # Strip a trailing .php from incoming requests → clean URL
     # /check.php is exempt — legacy API shim for LIS integrations
     RewriteCond %{THE_REQUEST} \s/+([^\s]+?)\.php[\s?] [NC]
     RewriteCond %{REQUEST_URI} !/check\.php$ [NC]
     RewriteRule ^ /%1 [R=301,L,NE]
 
-    # Allow existing files and directories to be served as-is
-    # (assets, the front controller itself, check.php shim)
+    # Serve existing files / dirs as-is (assets, the front controller, check.php)
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # Route everything else through the front controller
+    # Everything else → front controller
     RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+# ============================================================
+# Protect framework folders
+# Pattern is path-relative with optional leading slash so it works
+# both at the document root and in subfolder installs.
+# ============================================================
+RedirectMatch 404 ^/?app/
+RedirectMatch 404 ^/?config/
+RedirectMatch 404 ^/?database/
+RedirectMatch 404 ^/?storage/
+
+# ============================================================
+# Protect dotfiles + sensitive extensions
+# Split into two patterns for safer regex parsing.
+# ============================================================
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+<FilesMatch "\.(sql|log|sh|env|ini|conf|inc|bak)$">
+    Require all denied
+</FilesMatch>
+<Files "README.md">
+    Require all denied
+</Files>
+
+# ============================================================
+# Security headers
+# ============================================================
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
 # ============================================================
