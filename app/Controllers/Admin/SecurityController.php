@@ -83,13 +83,15 @@ final class SecurityController extends Controller
     {
         Auth::requireAdmin();
         $this->verifyCsrf($req);
-        $current = (string)$req->post('current_password', '');
-        $adminHash = (string)Settings::get('admin_password_hash', '');
-        if (!password_verify($current, $adminHash)) {
-            Flash::error('Current admin password is incorrect.');
-            $this->redirect('/admin/security');
+
+        $autoGenerate = $req->post('auto_generate') === '1';
+        $token = \App\Controllers\CronController::rotateToken();
+
+        if ($autoGenerate) {
+            $this->json(['ok' => true, 'token' => $token]);
+            return;
         }
-        \App\Controllers\CronController::rotateToken();
+
         Flash::success('Cron token rotated. Update your scheduler with the new value.');
         $this->redirect('/admin/security');
     }

@@ -153,6 +153,43 @@
     cronReveal.addEventListener('click', function () {
       var v = cronReveal.getAttribute('data-current-key') || '';
       var slot = document.getElementById('cronTokenValue');
+      var copyBtn = document.getElementById('cronTokenCopy');
+      var testBtn = document.getElementById('cronTestBtn');
+      // Empty token — generate one via AJAX
+      if (!v) {
+        var csrf = document.body.getAttribute('data-csrf') || '';
+        if (!csrf) {
+          if (slot) slot.textContent = 'Error: CSRF token not found. Reload the page.';
+          return;
+        }
+        cronReveal.disabled = true;
+        cronReveal.textContent = 'Generating…';
+        fetch((document.body.getAttribute('data-base-url') || '') + '/admin/security/rotate-cron', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+          body: '_csrf=' + encodeURIComponent(csrf) + '&auto_generate=1'
+        })
+        .then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); })
+        .then(function (j) {
+          if (j.body.token) {
+            cronReveal.setAttribute('data-current-key', j.body.token);
+            if (slot) slot.textContent = j.body.token;
+            if (copyBtn) { copyBtn.removeAttribute('disabled'); copyBtn.setAttribute('data-current-key', j.body.token); }
+            if (testBtn) { testBtn.removeAttribute('disabled'); testBtn.setAttribute('data-token', j.body.token); }
+            cronReveal.textContent = 'Reveal';
+          } else {
+            if (slot) slot.textContent = 'Generation failed. Use the Rotate form below.';
+            cronReveal.textContent = 'Generate';
+          }
+        })
+        .catch(function () {
+          if (slot) slot.textContent = 'Network error. Use the Rotate form below.';
+          cronReveal.textContent = 'Generate';
+        })
+        .then(function () { cronReveal.disabled = false; });
+        return;
+      }
+      // Token exists — just reveal
       if (slot) slot.textContent = v || '(not generated yet)';
     });
   }

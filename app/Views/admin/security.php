@@ -126,10 +126,6 @@ $cronCurl = "*/5 * * * * curl -fsS -H \"X-Cron-Token: {$cronToken}\" {$cronUrl}"
 
     <form method="post" action="<?= htmlspecialchars($app->baseUrl('/admin/security/rotate-cron')) ?>" class="form" style="margin-top:14px">
       <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\App\Core\Csrf::token()) ?>">
-      <label class="form__field">
-        <span class="form__label">Confirm with current admin password</span>
-        <input class="form__control" type="password" name="current_password" required autocomplete="off">
-      </label>
       <button class="btn btn--danger" type="submit">Rotate cron token</button>
     </form>
 
@@ -137,7 +133,7 @@ $cronCurl = "*/5 * * * * curl -fsS -H \"X-Cron-Token: {$cronToken}\" {$cronUrl}"
       <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\App\Core\Csrf::token()) ?>">
       <label class="form__field form__field--row">
         <input type="checkbox" name="cron_local_only" value="1" <?= $cronLocalOnly ? 'checked' : '' ?>>
-        <span>Restrict to localhost only (recommended)</span>
+        <span>Restrict to localhost only</span>
       </label>
       <button class="btn btn--ghost" type="submit">Save policy</button>
     </form>

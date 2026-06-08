@@ -51,7 +51,7 @@ final class CronController extends Controller
             Response::json(['ok' => false, 'error' => 'Invalid or missing cron token.'], 401);
         }
 
-        if (Settings::int('cron_local_only', 1) === 1 && !self::isLocal($req)) {
+        if (Settings::int('cron_local_only', 0) === 1 && !self::isLocal($req)) {
             Logger::warn('cron.nonlocal', 'Cron request from non-local IP rejected', ['ip' => $req->ip()]);
             Response::json(['ok' => false, 'error' => 'Cron endpoint is restricted to localhost.'], 403);
         }
