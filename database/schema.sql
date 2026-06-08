@@ -61,3 +61,20 @@ CREATE TABLE IF NOT EXISTS activity_log (
     KEY idx_event (event),
     KEY idx_level (level)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Daily scan statistics (feeds the dashboard "Total Mails Scanned" + 7-day trend).
+-- One row per calendar day. Latest scan wins (UPSERT replaces the count
+-- instead of accumulating) so repeated dashboard refreshes with no new mail
+-- do NOT inflate the number.
+--
+--  messages_scanned  = total messages returned by the Graph query
+--  unique_failed     = number of distinct failed email addresses extracted
+--  bounce_messages   = messages that had at least one failure (for hit rate)
+CREATE TABLE IF NOT EXISTS scan_stats (
+    `day`              DATE         NOT NULL,
+    `messages_scanned` INT UNSIGNED NOT NULL DEFAULT 0,
+    `unique_failed`    INT UNSIGNED NOT NULL DEFAULT 0,
+    `bounce_messages`  INT UNSIGNED NOT NULL DEFAULT 0,
+    `updated_at`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`day`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

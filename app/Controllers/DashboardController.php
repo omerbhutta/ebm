@@ -62,6 +62,7 @@ final class DashboardController extends Controller
             'supp_domains'      => SuppressionService::domains(),
             'timeline'          => $suppStats['timeline'] ?? ['today' => 0, 'week' => 0, 'month' => 0, 'year' => 0, 'lifetime' => 0],
             'trend'             => $suppStats['trend'] ?? [],
+            'hit_rate'          => $suppStats['hit_rate'] ?? 0.0,
             'mailbox_breakdown' => $suppStats['mailbox_breakdown'] ?? [],
         ]);
     }

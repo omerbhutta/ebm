@@ -130,16 +130,36 @@ final class RefreshService
         }
 
         $uniqueFailed = [];
+        $bounceMsgKeys = [];
         foreach ($allMessages as $m) {
             $selfEmail = $m['__mailbox'] ?? '';
             $mid = $m['id'] ?? '';
             $failed = BounceService::extractFailedRecipients($m, $selfEmail);
+            $hadFailure = false;
             foreach ($failed as $e) {
                 $uniqueFailed[strtolower($e)] = $e;
+                $hadFailure = true;
                 if ($mid !== '') {
                     $ndrTuples[] = ['mailbox' => $selfEmail, 'message_id' => $mid, 'email' => $e];
                 }
             }
+            if ($hadFailure && $mid !== '') {
+                $bounceMsgKeys[$selfEmail . '|' . $mid] = true;
+            }
+        }
+        $bounceMessageCount = count($bounceMsgKeys);
+
+        // Daily scan stats: recorded on EVERY dashboard load (cache miss or
+        // hit — UPSERT replace means the same value overwrites itself on a
+        // cache hit, so the count stays stable across refreshes). Cron's
+        // time-windowed mode is excluded because it would clobber the full
+        // dashboard count with a 12-hour subset.
+        if (!$windowed) {
+            ScanStats::recordToday(
+                count($allMessages),
+                count($uniqueFailed),
+                $bounceMessageCount
+            );
         }
 
         $sync = SuppressionService::sync($ndrTuples);

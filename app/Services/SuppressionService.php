@@ -157,92 +157,39 @@ final class SuppressionService
 
             $lastSync = $pdo->query("SELECT MAX(processed_at) FROM processed_ndrs")->fetchColumn();
 
-            // Timeline stats aligned with calendar boundaries
-            $timeline = $pdo->query("
-                SELECT
-                    COUNT(CASE WHEN processed_at >= CURDATE() THEN 1 END) AS today,
-                    COUNT(CASE WHEN processed_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) THEN 1 END) AS week,
-                    COUNT(CASE WHEN processed_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY) THEN 1 END) AS month,
-                    COUNT(CASE WHEN processed_at >= DATE_SUB(CURDATE(), INTERVAL 364 DAY) THEN 1 END) AS year,
-                    COUNT(*) AS lifetime
-                FROM processed_ndrs
-            ")->fetch() ?: [
-                'today' => 0,
-                'week' => 0,
-                'month' => 0,
-                'year' => 0,
-                'lifetime' => 0
+            // Timeline stats — all 5 boxes show the same number: the total
+            // suppression_list count. The five cards (Today / Week / Month /
+            // Year / Lifetime) are period-context labels for the same metric.
+            $suppressionTotal = (int)($row['total'] ?? 0);
+            $timeline = [
+                'today'    => $suppressionTotal,
+                'week'     => $suppressionTotal,
+                'month'    => $suppressionTotal,
+                'year'     => $suppressionTotal,
+                'lifetime' => $suppressionTotal,
             ];
 
-            // Real registered bounces trend per day for the last 7 days
-            $trendRows = $pdo->query("
-                SELECT DATE_FORMAT(processed_at, '%Y-%m-%d') AS day, COUNT(*) AS count
-                FROM processed_ndrs
-                WHERE processed_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-                GROUP BY day
-                ORDER BY day ASC
-            ")->fetchAll();
-
-            $dailyBounces = [];
-            foreach ($trendRows as $tr) {
-                $dailyBounces[$tr['day']] = (int)$tr['count'];
-            }
-
-            // Sync logs from activity log to extract messages scanned
-            $syncLogs = $pdo->query("
-                SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS day, message
-                FROM activity_log
-                WHERE event = 'refresh.sync' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-                ORDER BY created_at ASC
-            ")->fetchAll();
-
-            $dailyScanned = [];
-            
-            // Initialise 7-day window
+            // 7-day trend from scan_stats (scanned messages, unique failed
+            // addresses). Hit rate = unique_failed / messages_scanned,
+            // capped at 100% (one message can have multiple bad recipients).
+            $scanMap = ScanStats::daily(7);
+            $trendData = [];
+            $hitScanned = 0;
+            $hitFailed = 0;
             for ($i = 6; $i >= 0; $i--) {
                 $d = date('Y-m-d', strtotime("-$i days"));
-                $dailyScanned[$d] = 0;
-                if (!isset($dailyBounces[$d])) {
-                    $dailyBounces[$d] = 0;
-                }
-            }
-
-            // Parse real scanned count from logs
-            foreach ($syncLogs as $log) {
-                $day = $log['day'];
-                $msg = $log['message'];
-                if (preg_match('/msg=(\d+)/', $msg, $matches)) {
-                    if (isset($dailyScanned[$day])) {
-                        $dailyScanned[$day] += (int)$matches[1];
-                    }
-                }
-            }
-
-            // Fallbacks for realistic visuals on empty system/short logs
-            foreach ($dailyScanned as $d => $val) {
-                $bounceVal = $dailyBounces[$d];
-                if ($val === 0) {
-                    if ($bounceVal > 0) {
-                        $dailyScanned[$d] = $bounceVal * 12 + rand(4, 12);
-                    } else {
-                        // Futuristic seed data
-                        $dayOffset = (int)round((time() - strtotime($d)) / 86400);
-                        $dummyB = [8, 15, 12, 19, 14, 25, 22][$dayOffset % 7];
-                        $dailyBounces[$d] = $dummyB;
-                        $dailyScanned[$d] = $dummyB * 10 + rand(15, 35);
-                    }
-                }
-            }
-
-            // Construct 7-day trend array
-            $trendData = [];
-            foreach (array_keys($dailyScanned) as $d) {
+                $sd = $scanMap[$d];
                 $trendData[] = [
                     'day'     => $d,
-                    'scanned' => $dailyScanned[$d],
-                    'bounces' => $dailyBounces[$d]
+                    'scanned' => $sd['scanned'],
+                    'bounces' => $sd['failed'],
                 ];
+                $hitScanned += $sd['scanned'];
+                $hitFailed  += $sd['failed'];
             }
+            $hitRate = $hitScanned > 0
+                ? round((min($hitFailed, $hitScanned) / $hitScanned) * 100, 1)
+                : 0.0;
 
             // Mailbox breakdown
             $mailboxRows = $pdo->query("
@@ -258,6 +205,7 @@ final class SuppressionService
                 'last_sync'   => $lastSync ?: null,
                 'timeline'    => $timeline,
                 'trend'       => $trendData,
+                'hit_rate'    => $hitRate,
                 'mailbox_breakdown' => $mailboxRows ?: [],
             ];
         } catch (\Throwable $e) {
@@ -267,6 +215,7 @@ final class SuppressionService
                 'last_sync' => null,
                 'timeline' => ['today' => 0, 'week' => 0, 'month' => 0, 'year' => 0, 'lifetime' => 0],
                 'trend' => [],
+                'hit_rate' => 0.0,
                 'mailbox_breakdown' => [],
             ];
         }

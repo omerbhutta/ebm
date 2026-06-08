@@ -8,30 +8,16 @@ $app = App::instance();
 // Format data for Chart.js — $trend uses keys: day, scanned, bounces
 $trendDays = [];
 $trendCounts = [];
-if (!empty($trend)) {
-    foreach ($trend as $t) {
-        $trendDays[] = date('M d', strtotime($t['day'] ?? 'now'));
-        $trendCounts[] = (int)($t['bounces'] ?? 0);
-    }
-} else {
-    // Generate beautiful placeholder trends for a futuristic look on empty systems
-    for ($i = 6; $i >= 0; $i--) {
-        $trendDays[] = date('M d', strtotime("-$i days"));
-        $trendCounts[] = [8, 15, 12, 19, 14, 25, 22][$i];
-    }
+foreach (($trend ?? []) as $t) {
+    $trendDays[] = date('M d', strtotime($t['day'] ?? 'now'));
+    $trendCounts[] = (int)($t['bounces'] ?? 0);
 }
 
 $mbLabels = [];
 $mbCounts = [];
-if (!empty($mailbox_breakdown)) {
-    foreach ($mailbox_breakdown as $mb) {
-        $mbLabels[] = $mb['email'] ?? 'Unknown';
-        $mbCounts[] = (int)($mb['count'] ?? 0);
-    }
-} else {
-    // Generate placeholder mailbox distribution
-    $mbLabels = ['inbox@corporate.com', 'bounces@marketing.net', 'alerts@system.org'];
-    $mbCounts = [55, 30, 15];
+foreach (($mailbox_breakdown ?? []) as $mb) {
+    $mbLabels[] = $mb['email'] ?? 'Unknown';
+    $mbCounts[] = (int)($mb['count'] ?? 0);
 }
 ?>
 <?php $subtitle = 'Live telemetry, ingestion analytics, and automated suppression tracking.'; include __DIR__ . '/../partials/page-header.php'; ?>
@@ -58,8 +44,8 @@ if (!empty($mailbox_breakdown)) {
       <span class="stat-card__label">Today</span>
       <span style="font-size: 16px; filter: drop-shadow(0 0 6px var(--accent-glow));">⚡</span>
     </div>
-    <div class="stat-card__value"><?= number_format($timeline['today'] ?? 0) ?></div>
-    <div class="stat-card__sub">Ingested bounces today</div>
+    <div class="stat-card__value"><?= number_format($timeline['lifetime'] ?? 0) ?></div>
+    <div class="stat-card__sub">Total suppression items</div>
   </div>
 
   <div class="stat-card">
@@ -67,8 +53,8 @@ if (!empty($mailbox_breakdown)) {
       <span class="stat-card__label">This Week</span>
       <span style="font-size: 16px; opacity: 0.8;">🗓</span>
     </div>
-    <div class="stat-card__value"><?= number_format($timeline['week'] ?? 0) ?></div>
-    <div class="stat-card__sub">Last 7 days total</div>
+    <div class="stat-card__value"><?= number_format($timeline['lifetime'] ?? 0) ?></div>
+    <div class="stat-card__sub">Total suppression items</div>
   </div>
 
   <div class="stat-card">
@@ -76,8 +62,8 @@ if (!empty($mailbox_breakdown)) {
       <span class="stat-card__label">This Month</span>
       <span style="font-size: 16px; opacity: 0.8;">📅</span>
     </div>
-    <div class="stat-card__value"><?= number_format($timeline['month'] ?? 0) ?></div>
-    <div class="stat-card__sub">Last 30 days total</div>
+    <div class="stat-card__value"><?= number_format($timeline['lifetime'] ?? 0) ?></div>
+    <div class="stat-card__sub">Total suppression items</div>
   </div>
 
   <div class="stat-card">
@@ -85,8 +71,8 @@ if (!empty($mailbox_breakdown)) {
       <span class="stat-card__label">This Year</span>
       <span style="font-size: 16px; opacity: 0.8;">📊</span>
     </div>
-    <div class="stat-card__value"><?= number_format($timeline['year'] ?? 0) ?></div>
-    <div class="stat-card__sub">Last 365 days total</div>
+    <div class="stat-card__value"><?= number_format($timeline['lifetime'] ?? 0) ?></div>
+    <div class="stat-card__sub">Total suppression items</div>
   </div>
 
   <div class="stat-card">
@@ -154,11 +140,7 @@ if (!empty($mailbox_breakdown)) {
           </div>
           <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-soft); padding-bottom: 6px;">
             <span class="muted">Ingestion Hit Rate:</span>
-            <?php 
-              $totScan = array_sum(array_column($trend, 'scanned')) ?: 1;
-              $totBnc  = array_sum(array_column($trend, 'bounces'));
-              $rate    = round(($totBnc / $totScan) * 100, 1);
-            ?>
+            <?php $rate = $hit_rate; ?>
             <strong style="font-family: 'Outfit'; color: var(--ok); font-weight: 700;"><?= $rate ?>%</strong>
           </div>
           <div style="display: flex; justify-content: space-between; padding-bottom: 6px;">
