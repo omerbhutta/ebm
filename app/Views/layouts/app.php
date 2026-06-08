@@ -69,8 +69,8 @@ $displayInitial = strtoupper(substr($displayName, 0, 1));
     <a class="navbar__link" href="<?= htmlspecialchars($app->baseUrl('/admin/mailboxes')) ?>" data-match="/admin/mailboxes">
       <span class="icon">📬</span><span>Mailboxes</span>
     </a>
-    <a class="navbar__link" href="<?= htmlspecialchars($app->baseUrl('/admin/graph')) ?>" data-match="/admin/graph">
-      <span class="icon">🔌</span><span>Graph</span>
+    <a class="navbar__link" href="<?= htmlspecialchars($app->baseUrl('/admin/tenants')) ?>" data-match="/admin/tenants">
+      <span class="icon">🏢</span><span>Tenants</span>
     </a>
     <a class="navbar__link" href="<?= htmlspecialchars($app->baseUrl('/admin/system')) ?>" data-match="/admin/system">
       <span class="icon">🛠</span><span>System</span>

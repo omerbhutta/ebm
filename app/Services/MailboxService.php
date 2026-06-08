@@ -20,27 +20,56 @@ final class MailboxService
     public static function all(bool $onlyActive = false): array
     {
         $pdo = Database::connection();
-        $sql = "SELECT * FROM monitored_mailboxes" . ($onlyActive ? " WHERE is_active = 1" : "") . " ORDER BY id";
-        return $pdo->query($sql)->fetchAll();
+        try {
+            $sql = "SELECT m.*, t.name AS tenant_name FROM monitored_mailboxes m LEFT JOIN tenants t ON m.tenant_id = t.id" .
+                   ($onlyActive ? " WHERE m.is_active = 1" : "") . " ORDER BY m.id";
+            return $pdo->query($sql)->fetchAll();
+        } catch (\PDOException $e) {
+            // tenants table may not exist yet (existing install pre-migration)
+            $sql = "SELECT * FROM monitored_mailboxes" . ($onlyActive ? " WHERE is_active = 1" : "") . " ORDER BY id";
+            return $pdo->query($sql)->fetchAll();
+        }
+    }
+
+    public static function allByTenant(int $tenantId, bool $onlyActive = false): array
+    {
+        $pdo = Database::connection();
+        $sql = "SELECT m.*, t.name AS tenant_name FROM monitored_mailboxes m LEFT JOIN tenants t ON m.tenant_id = t.id WHERE m.tenant_id = ?" .
+               ($onlyActive ? " AND m.is_active = 1" : "") . " ORDER BY m.id";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$tenantId]);
+        return $stmt->fetchAll();
     }
 
     public static function find(int $id): ?array
     {
         $pdo = Database::connection();
-        $stmt = $pdo->prepare("SELECT * FROM monitored_mailboxes WHERE id = ?");
-        $stmt->execute([$id]);
-        return $stmt->fetch() ?: null;
+        try {
+            $stmt = $pdo->prepare("SELECT m.*, t.name AS tenant_name FROM monitored_mailboxes m LEFT JOIN tenants t ON m.tenant_id = t.id WHERE m.id = ?");
+            $stmt->execute([$id]);
+            return $stmt->fetch() ?: null;
+        } catch (\PDOException $e) {
+            $stmt = $pdo->prepare("SELECT * FROM monitored_mailboxes WHERE id = ?");
+            $stmt->execute([$id]);
+            return $stmt->fetch() ?: null;
+        }
     }
 
     public static function findByEmail(string $email): ?array
     {
         $pdo = Database::connection();
-        $stmt = $pdo->prepare("SELECT * FROM monitored_mailboxes WHERE email = ?");
-        $stmt->execute([strtolower(trim($email))]);
-        return $stmt->fetch() ?: null;
+        try {
+            $stmt = $pdo->prepare("SELECT m.*, t.name AS tenant_name FROM monitored_mailboxes m LEFT JOIN tenants t ON m.tenant_id = t.id WHERE m.email = ?");
+            $stmt->execute([strtolower(trim($email))]);
+            return $stmt->fetch() ?: null;
+        } catch (\PDOException $e) {
+            $stmt = $pdo->prepare("SELECT * FROM monitored_mailboxes WHERE email = ?");
+            $stmt->execute([strtolower(trim($email))]);
+            return $stmt->fetch() ?: null;
+        }
     }
 
-    public static function add(string $email, ?string $description = null): array
+    public static function add(string $email, ?string $description = null, int $tenantId = 0): array
     {
         $email = strtolower(trim($email));
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -49,10 +78,10 @@ final class MailboxService
         try {
             $pdo = Database::connection();
             $stmt = $pdo->prepare("
-                INSERT INTO monitored_mailboxes (email, description, is_active, created_at)
-                VALUES (?, ?, 1, NOW())
+                INSERT INTO monitored_mailboxes (tenant_id, email, description, is_active, created_at)
+                VALUES (?, ?, ?, 1, NOW())
             ");
-            $stmt->execute([$email, $description ?: null]);
+            $stmt->execute([$tenantId, $email, $description ?: null]);
             self::invalidateCache($email);
             Logger::info('mailbox.added', "Added mailbox {$email}");
             return ['ok' => true, 'id' => (int)$pdo->lastInsertId(), 'email' => $email];
@@ -66,7 +95,7 @@ final class MailboxService
 
     public static function update(int $id, array $fields): bool
     {
-        $allowed = ['email','description','is_active'];
+        $allowed = ['email','description','is_active','tenant_id'];
         $sets = [];
         $vals = [];
         foreach ($fields as $k => $v) {
@@ -111,15 +140,24 @@ final class MailboxService
         return true;
     }
 
-    public static function recordSync(string $email, ?string $error = null): void
+    public static function recordSync(string $email, ?string $error = null, ?int $tenantId = null): void
     {
         $pdo = Database::connection();
-        $stmt = $pdo->prepare("
-            UPDATE monitored_mailboxes
-            SET last_synced_at = NOW(), last_error = ?
-            WHERE email = ?
-        ");
-        $stmt->execute([$error, $email]);
+        if ($tenantId) {
+            $stmt = $pdo->prepare("
+                UPDATE monitored_mailboxes
+                SET last_synced_at = NOW(), last_error = ?
+                WHERE email = ? AND tenant_id = ?
+            ");
+            $stmt->execute([$error, $email, $tenantId]);
+        } else {
+            $stmt = $pdo->prepare("
+                UPDATE monitored_mailboxes
+                SET last_synced_at = NOW(), last_error = ?
+                WHERE email = ?
+            ");
+            $stmt->execute([$error, $email]);
+        }
     }
 
     public static function invalidateCache(string $email): void

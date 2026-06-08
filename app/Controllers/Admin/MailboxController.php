@@ -9,6 +9,7 @@ use App\Core\Auth;
 use App\Core\Flash;
 use App\Services\MailboxService;
 use App\Services\GraphService;
+use App\Services\TenantService;
 
 /**
  * Manage monitored mailboxes.
@@ -26,12 +27,16 @@ final class MailboxController extends Controller
         $page   = min($page, $pages);
         $offset = ($page - 1) * $per;
         $rows   = array_slice($all, $offset, $per);
+
+        $tenants = \App\Services\TenantService::all(true);
+
         $this->view('admin/mailboxes', [
             'mailboxes' => $rows,
             'total'     => $total,
             'page'      => $page,
             'pages'     => $pages,
             'per'       => $per,
+            'tenants'   => $tenants,
         ]);
     }
 
@@ -40,8 +45,9 @@ final class MailboxController extends Controller
         Auth::requireAdmin();
         $this->verifyCsrf($req);
 
-        $email = (string)$req->post('email', '');
-        $desc  = (string)$req->post('description', '');
+        $email    = (string)$req->post('email', '');
+        $desc     = (string)$req->post('description', '');
+        $tenantId = (int)$req->post('tenant_id', 0);
         $v = $this->validate(compact('email','desc'), [
             'email' => 'required|email',
             'desc'  => 'max:255',
@@ -50,7 +56,7 @@ final class MailboxController extends Controller
             Flash::error($v->first('email') ?: $v->first('desc') ?: 'Validation failed.');
             $this->redirect('/admin/mailboxes');
         }
-        $r = MailboxService::add($email, $desc ?: null);
+        $r = MailboxService::add($email, $desc ?: null, $tenantId);
         if (!$r['ok']) {
             Flash::error($r['error']);
         } else {
@@ -111,13 +117,31 @@ final class MailboxController extends Controller
             Flash::error('Mailbox not found.');
             $this->redirect('/admin/mailboxes');
         }
-        $r = GraphService::testMailboxAccess($mb['email']);
+        // Resolve tenant-specific token
+        $token = null;
+        $tenantId = (int)($mb['tenant_id'] ?? 0);
+        if ($tenantId > 0) {
+            $tenant = TenantService::find($tenantId);
+            if ($tenant) {
+                $token = GraphService::getToken((string)$tenant['tenant_id'], (string)$tenant['client_id'], (string)$tenant['client_secret']);
+            }
+        }
+        if (!$token) {
+            $default = TenantService::getDefault();
+            if ($default && (int)$default['is_active']) {
+                $token = GraphService::getToken((string)$default['tenant_id'], (string)$default['client_id'], (string)$default['client_secret']);
+            }
+        }
+        if (!$token) {
+            $token = GraphService::getToken();
+        }
+        $r = GraphService::testMailboxAccess($mb['email'], $token);
         if ($r['ok']) {
             Flash::success("Graph connection to <strong>" . htmlspecialchars($mb['email']) . "</strong> succeeded.");
-            MailboxService::recordSync($mb['email'], null);
+            MailboxService::recordSync($mb['email'], null, $tenantId);
         } else {
             Flash::error("Connection failed: " . htmlspecialchars($r['error']));
-            MailboxService::recordSync($mb['email'], $r['error']);
+            MailboxService::recordSync($mb['email'], $r['error'], $tenantId);
         }
         $this->redirect('/admin/mailboxes');
     }

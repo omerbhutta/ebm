@@ -17,6 +17,16 @@ $app = App::instance();
         <input class="form__control" type="email" name="email" required placeholder="bounces@example.com">
       </label>
       <label class="form__field">
+        <span class="form__label">Tenant</span>
+        <select class="form__control" name="tenant_id">
+          <?php if (empty($tenants)): ?>
+            <option value="0">Default (global credentials)</option>
+          <?php else: foreach ($tenants as $t): ?>
+            <option value="<?= (int)$t['id'] ?>"><?= htmlspecialchars($t['name']) ?></option>
+          <?php endforeach; endif; ?>
+        </select>
+      </label>
+      <label class="form__field">
         <span class="form__label">Description (optional)</span>
         <input class="form__control" type="text" name="description" maxlength="255" placeholder="e.g. Primary sending account">
       </label>
@@ -24,7 +34,7 @@ $app = App::instance();
         <button class="btn btn--primary" type="submit">Add mailbox</button>
       </div>
     </form>
-    <p class="muted small">The user must have a valid Microsoft 365 license and an Exchange Online mailbox accessible by the app registration. See <a href="<?= htmlspecialchars($app->baseUrl('/admin/graph')) ?>">Graph API</a> to verify credentials.</p>
+    <p class="muted small">The user must have a valid Microsoft 365 license and an Exchange Online mailbox accessible by the app registration. See <a href="<?= htmlspecialchars($app->baseUrl('/admin/graph')) ?>">Graph API</a> or <a href="<?= htmlspecialchars($app->baseUrl('/admin/tenants')) ?>">Tenants</a> to verify credentials.</p>
   </div>
 </section>
 
@@ -48,6 +58,7 @@ $app = App::instance();
       <thead>
         <tr>
           <th>Address</th>
+          <th>Tenant</th>
           <th>Status</th>
           <th>Last sync</th>
           <th>Last error</th>
@@ -56,13 +67,14 @@ $app = App::instance();
       </thead>
       <tbody>
       <?php if (empty($mailboxes)): ?>
-        <tr><td colspan="5" class="muted center">No mailboxes configured yet.</td></tr>
+        <tr><td colspan="6" class="muted center">No mailboxes configured yet.</td></tr>
       <?php else: foreach ($mailboxes as $m): ?>
         <tr>
           <td>
             <strong><?= htmlspecialchars($m['email']) ?></strong>
             <?php if (!empty($m['description'])): ?><div class="muted small"><?= htmlspecialchars($m['description']) ?></div><?php endif; ?>
           </td>
+          <td class="muted small"><?= htmlspecialchars($m['tenant_name'] ?? 'Default') ?></td>
           <td>
             <?php if ((int)$m['is_active'] === 1): ?>
               <span class="badge badge--ok">Active</span>

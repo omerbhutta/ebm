@@ -16,21 +16,12 @@ use DateTimeZone;
  *   - DashboardController (interactive refresh, full cache)
  *   - CronController       (automated refresh, 12h window, no cache)
  *   - BounceController      (per-mailbox fetch on demand)
+ *
+ * Multi-tenant: mailboxes are grouped by tenant_id. Each tenant authenticates
+ * with its own Graph credentials. Tokens are cached per-tenant.
  */
 final class RefreshService
 {
-    /**
-     * Run a sync.
-     *
-     * @param bool                $forceRefresh Bypass the message cache. (Cron always does this
-     *                                         because its 12h window is a strict subset of the
-     *                                         all-time data held in the cache.)
-     * @param DateTimeInterface|null $since      When set, the Graph query is filtered with
-     *                                         $filter=receivedDateTime ge <since> and the cache is
-     *                                         always bypassed. The dashboard leaves this null.
-     * @param int $maxMessages  Per-mailbox cap (cron keeps it small; default 100 for dashboard).
-     * @param int $pageLimit    Graph pagination cap.
-     */
     public static function run(
         bool $forceRefresh = false,
         ?DateTimeInterface $since = null,
@@ -46,15 +37,13 @@ final class RefreshService
         }
         $cacheTtl = Settings::int('cache_ttl', 300);
 
-        $mailboxes = MailboxService::all(true);
+        $allMailboxes = MailboxService::all(true);
 
         $allMessages = [];
         $ndrTuples   = [];
         $mailboxErrors = [];
         $cacheHits = $cacheMisses = 0;
-        $token = null;
 
-        // Cron mode: $since is set → no cache, time-filtered Graph query.
         $windowed = $since !== null;
         $useCache = !$windowed && !$forceRefresh;
 
@@ -66,66 +55,121 @@ final class RefreshService
             $filterExpr = "&\$filter=receivedDateTime ge {$iso}";
         }
 
-        foreach ($mailboxes as $mb) {
-            $email = (string)$mb['email'];
-            $mbErrors = [];
-            foreach ($folders as $label => $folderId) {
-                $cacheKey = MailboxService::slug($email) . '__' . preg_replace('/[^a-z0-9]/i', '', (string)$label);
-                $messages = $useCache ? Cache::get($cacheKey) : null;
-                if (!is_array($messages)) {
-                    $cacheMisses++;
-                    if ($token === null) $token = GraphService::getToken();
-                    if (!$token) { $mbErrors[] = "$label: auth failed"; continue; }
+        // Group mailboxes by tenant
+        $tenants = [];
+        foreach ($allMailboxes as $mb) {
+            $tid = (int)($mb['tenant_id'] ?? 0);
+            if (!isset($tenants[$tid])) {
+                $tenants[$tid] = [];
+            }
+            $tenants[$tid][] = $mb;
+        }
 
-                    $messages = [];
-                    $url = "https://graph.microsoft.com/v1.0/users/" . rawurlencode($email) .
-                           "/mailFolders/{$folderId}/messages?" .
-                           "\$search=\"subject:undeliverable\"" .
-                           "&\$select=id,subject,receivedDateTime,from,toRecipients" .
-                           "&\$top=" . $maxMessages .
-                           $filterExpr;
-                    $page = 0;
-                    while ($url && $page < $pageLimit) {
-                        $page++;
-                        $r = GraphService::get($url, $token);
-                        if ($r['code'] !== 200) {
-                            $err = $r['body']['error']['message'] ?? ('HTTP ' . $r['code']);
-                            $mbErrors[] = "$label: " . substr((string)$err, 0, 150);
-                            break;
-                        }
-                        foreach (($r['body']['value'] ?? []) as $m) {
-                            // In windowed mode, Graph's $filter does most of the work, but we
-                            // double-check the date so we don't pick up edge cases around the
-                            // server clock vs message receivedDateTime.
-                            if ($windowed && $since !== null) {
-                                $rdt = strtotime((string)($m['receivedDateTime'] ?? '')) ?: 0;
-                                if ($rdt < $since->getTimestamp()) continue;
+        $tenantTokens = [];
+
+        foreach ($tenants as $tid => $mboxes) {
+            // Resolve tenant credentials
+            if ($tid > 0) {
+                $tenant = TenantService::find($tid);
+                if (!$tenant || !(int)$tenant['is_active']) {
+                    foreach ($mboxes as $mb) {
+                        $mailboxErrors[$mb['email']] = 'Tenant inactive or not found';
+                        MailboxService::recordSync($mb['email'], 'Tenant inactive or not found', $tid);
+                    }
+                    continue;
+                }
+                $token = GraphService::getToken(
+                    (string)$tenant['tenant_id'],
+                    (string)$tenant['client_id'],
+                    (string)$tenant['client_secret']
+                );
+                if (!$token) {
+                    foreach ($mboxes as $mb) {
+                        $mailboxErrors[$mb['email']] = 'Tenant auth failed';
+                        MailboxService::recordSync($mb['email'], 'Tenant auth failed', $tid);
+                    }
+                    continue;
+                }
+                $tenantTokens[$tid] = $token;
+            } else {
+                // tenant_id = 0: use the default tenant's credentials
+                $default = TenantService::getDefault();
+                if ($default && (int)$default['is_active']) {
+                    $token = GraphService::getToken(
+                        (string)$default['tenant_id'],
+                        (string)$default['client_id'],
+                        (string)$default['client_secret']
+                    );
+                }
+                if (empty($token)) {
+                    // Last resort: global settings fallback (pre-migration compat)
+                    $token = GraphService::getToken();
+                }
+                if (!$token) {
+                    foreach ($mboxes as $mb) {
+                        $mailboxErrors[$mb['email']] = 'auth failed (no credentials)';
+                    }
+                    continue;
+                }
+                $tenantTokens[0] = $token;
+            }
+            $token = $tenantTokens[$tid];
+
+            foreach ($mboxes as $mb) {
+                $email = (string)$mb['email'];
+                $mbErrors = [];
+                foreach ($folders as $label => $folderId) {
+                    $cacheKey = MailboxService::slug($email) . '__' . preg_replace('/[^a-z0-9]/i', '', (string)$label);
+                    $messages = $useCache ? Cache::get($cacheKey) : null;
+                    if (!is_array($messages)) {
+                        $cacheMisses++;
+                        $messages = [];
+                        $url = "https://graph.microsoft.com/v1.0/users/" . rawurlencode($email) .
+                               "/mailFolders/{$folderId}/messages?" .
+                               "\$search=\"subject:undeliverable\"" .
+                               "&\$select=id,subject,receivedDateTime,from,toRecipients" .
+                               "&\$top=" . $maxMessages .
+                               $filterExpr;
+                        $page = 0;
+                        while ($url && $page < $pageLimit) {
+                            $page++;
+                            $r = GraphService::get($url, $token);
+                            if ($r['code'] !== 200) {
+                                $err = $r['body']['error']['message'] ?? ('HTTP ' . $r['code']);
+                                $mbErrors[] = "$label: " . substr((string)$err, 0, 150);
+                                break;
                             }
-                            $m['__folder']  = $label;
+                            foreach (($r['body']['value'] ?? []) as $m) {
+                                if ($windowed && $since !== null) {
+                                    $rdt = strtotime((string)($m['receivedDateTime'] ?? '')) ?: 0;
+                                    if ($rdt < $since->getTimestamp()) continue;
+                                }
+                                $m['__folder']  = $label;
+                                $m['__mailbox'] = $email;
+                                $m['__mbDesc']  = $mb['description'] ?? '';
+                                $messages[] = $m;
+                                if (count($messages) >= $maxMessages) break 2;
+                            }
+                            $url = $r['body']['@odata.nextLink'] ?? null;
+                        }
+                        if ($useCache) Cache::put($cacheKey, $messages, $cacheTtl);
+                    } else {
+                        $cacheHits++;
+                        foreach ($messages as &$m) {
                             $m['__mailbox'] = $email;
                             $m['__mbDesc']  = $mb['description'] ?? '';
-                            $messages[] = $m;
-                            if (count($messages) >= $maxMessages) break 2;
                         }
-                        $url = $r['body']['@odata.nextLink'] ?? null;
+                        unset($m);
                     }
-                    if ($useCache) Cache::put($cacheKey, $messages, $cacheTtl);
-                } else {
-                    $cacheHits++;
-                    foreach ($messages as &$m) {
-                        $m['__mailbox'] = $email;
-                        $m['__mbDesc']  = $mb['description'] ?? '';
-                    }
-                    unset($m);
+                    foreach ($messages as $m) $allMessages[$m['id']] = $m;
                 }
-                foreach ($messages as $m) $allMessages[$m['id']] = $m;
-            }
-            if ($mbErrors) {
-                $msg = implode(' | ', $mbErrors);
-                MailboxService::recordSync($email, $msg);
-                $mailboxErrors[$email] = $msg;
-            } else {
-                MailboxService::recordSync($email, null);
+                if ($mbErrors) {
+                    $msg = implode(' | ', $mbErrors);
+                    MailboxService::recordSync($email, $msg, $tid);
+                    $mailboxErrors[$email] = $msg;
+                } else {
+                    MailboxService::recordSync($email, null, $tid);
+                }
             }
         }
 
@@ -149,11 +193,6 @@ final class RefreshService
         }
         $bounceMessageCount = count($bounceMsgKeys);
 
-        // Daily scan stats: recorded on EVERY dashboard load (cache miss or
-        // hit — UPSERT replace means the same value overwrites itself on a
-        // cache hit, so the count stays stable across refreshes). Cron's
-        // time-windowed mode is excluded because it would clobber the full
-        // dashboard count with a 12-hour subset.
         if (!$windowed) {
             ScanStats::recordToday(
                 count($allMessages),
@@ -179,7 +218,8 @@ final class RefreshService
             'duration_ms'    => $duration,
             'mode'           => $windowed ? 'cron_window' : 'full',
             'since'          => $windowed ? $since->format(DATE_ATOM) : null,
-            'mailboxes'      => count($mailboxes),
+            'tenants'        => count($tenants),
+            'mailboxes'      => count($allMailboxes),
             'messages'       => count($allMessages),
             'unique_failed'  => count($uniqueFailed),
             'sync'           => $sync,
@@ -191,8 +231,9 @@ final class RefreshService
         ];
 
         Logger::info('refresh.sync', sprintf(
-            '%s mb=%d msg=%d unique=%d added=%d updated=%d total=%d pruned=%d err=%d %dms',
+            '%s tenants=%d mb=%d msg=%d unique=%d added=%d updated=%d total=%d pruned=%d err=%d %dms',
             $windowed ? 'cron' : 'dashboard',
+            $result['tenants'],
             $result['mailboxes'],
             $result['messages'],
             $result['unique_failed'],

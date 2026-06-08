@@ -33,7 +33,7 @@ $app = App::instance();
     <div class="card__body">
       <ul class="quick-links">
         <li><a href="<?= htmlspecialchars($app->baseUrl('/admin/mailboxes')) ?>">📬 Mailboxes <span class="muted small">add, pause, remove</span></a></li>
-        <li><a href="<?= htmlspecialchars($app->baseUrl('/admin/graph')) ?>">🔌 Graph API <span class="muted small">tenant & credentials</span></a></li>
+        <li><a href="<?= htmlspecialchars($app->baseUrl('/admin/tenants')) ?>">🏢 Tenants <span class="muted small">tenant credentials & mailboxes</span></a></li>
         <li><a href="<?= htmlspecialchars($app->baseUrl('/admin/system')) ?>">🛠 System <span class="muted small">name, theme, retention</span></a></li>
         <li><a href="<?= htmlspecialchars($app->baseUrl('/admin/security')) ?>">🔒 Security <span class="muted small">passwords, API key</span></a></li>
         <li><a href="<?= htmlspecialchars($app->baseUrl('/admin/logs')) ?>">📋 Activity log <span class="muted small">audit & diagnostics</span></a></li>

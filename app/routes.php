@@ -29,10 +29,10 @@ use App\Controllers\CronController;
 
 use App\Controllers\Admin\AdminController;
 use App\Controllers\Admin\MailboxController;
-use App\Controllers\Admin\GraphController;
 use App\Controllers\Admin\SystemController;
 use App\Controllers\Admin\SecurityController;
 use App\Controllers\Admin\LogController;
+use App\Controllers\Admin\TenantController;
 
 /** @var Router $router */
 
@@ -108,8 +108,8 @@ $router->post('/admin/mailboxes/destroy',     [MailboxController::class, 'destro
 $router->post('/admin/mailboxes/test',        [MailboxController::class, 'test']);
 $router->post('/admin/mailboxes/clear-cache', [MailboxController::class, 'clearCache']);
 
-$router->get ('/admin/graph',                 [GraphController::class, 'index']);
-$router->post('/admin/graph/update',          [GraphController::class, 'update']);
+$router->get ('/admin/graph',                fn(Request $r) => Response::redirect(\App\Core\App::instance()->baseUrl('/admin/tenants')));
+$router->post('/admin/graph/update',         fn(Request $r) => Response::redirect(\App\Core\App::instance()->baseUrl('/admin/tenants')));
 
 $router->get ('/admin/system',                [SystemController::class, 'index']);
 $router->post('/admin/system/update',         [SystemController::class, 'update']);
@@ -121,6 +121,15 @@ $router->post('/admin/security/rotate-key',   [SecurityController::class, 'rotat
 $router->post('/admin/security/rotate-cron',  [SecurityController::class, 'rotateCronToken']);
 $router->post('/admin/security/cron-policy',  [SecurityController::class, 'updateCronPolicy']);
 $router->post('/admin/security/limits',       [SecurityController::class, 'updateLimits']);
+
+$router->get ('/admin/tenants',                [TenantController::class, 'index']);
+$router->get ('/admin/tenants/add',            [TenantController::class, 'add']);
+$router->get ('/admin/tenants/edit/{id:\d+}',  [TenantController::class, 'edit']);
+$router->post('/admin/tenants/store',          [TenantController::class, 'store']);
+$router->post('/admin/tenants/update',         [TenantController::class, 'update']);
+$router->post('/admin/tenants/toggle',         [TenantController::class, 'toggle']);
+$router->post('/admin/tenants/destroy',        [TenantController::class, 'destroy']);
+$router->post('/admin/tenants/set-default',    [TenantController::class, 'setDefault']);
 
 $router->get ('/admin/logs',                  [LogController::class, 'index']);
 $router->post('/admin/logs/prune',            [LogController::class, 'prune']);

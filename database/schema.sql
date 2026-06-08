@@ -33,9 +33,26 @@ CREATE TABLE IF NOT EXISTS processed_ndrs (
     KEY idx_processed_at (processed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tenants (multi-tenant support — each tenant has its own Graph credentials)
+CREATE TABLE IF NOT EXISTS tenants (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(255) NOT NULL,
+    tenant_id       VARCHAR(100) NOT NULL DEFAULT '',
+    client_id       VARCHAR(255) NOT NULL DEFAULT '',
+    client_secret   TEXT DEFAULT NULL,
+    is_default      TINYINT(1) NOT NULL DEFAULT 0,
+    is_active       TINYINT(1) NOT NULL DEFAULT 1,
+    notes           TEXT DEFAULT NULL,
+    created_at      DATETIME NOT NULL,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_active (is_active),
+    KEY idx_default (is_default)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Monitored mailboxes (admins manage which inboxes are scanned)
 CREATE TABLE IF NOT EXISTS monitored_mailboxes (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id       INT UNSIGNED NOT NULL,
     email           VARCHAR(255) NOT NULL,
     description     VARCHAR(255) DEFAULT NULL,
     is_active       TINYINT(1) NOT NULL DEFAULT 1,
@@ -43,7 +60,8 @@ CREATE TABLE IF NOT EXISTS monitored_mailboxes (
     last_synced_at  DATETIME DEFAULT NULL,
     last_error      TEXT DEFAULT NULL,
     UNIQUE KEY uk_email (email),
-    KEY idx_active (is_active)
+    KEY idx_active (is_active),
+    KEY idx_tenant (tenant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Activity log (auth attempts, settings changes, etc.)

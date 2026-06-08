@@ -13,6 +13,7 @@ use App\Core\Auth;
 use App\Core\Flash;
 use App\Services\InstallService;
 use App\Services\GraphService;
+use App\Services\TenantService;
 
 /**
  * 5-step installation wizard.
@@ -221,6 +222,14 @@ final class InstallController extends Controller
             $stmt->execute(['app_name', $sec['app_name']]);
             $stmt->execute(['viewer_password_hash', password_hash($sec['viewer_password'], PASSWORD_DEFAULT)]);
             $stmt->execute(['admin_password_hash',  password_hash($sec['admin_password'],  PASSWORD_DEFAULT)]);
+
+            // Create default tenant from Graph credentials
+            TenantService::ensureTable();
+            $stmt = $pdo->prepare("
+                INSERT INTO tenants (name, tenant_id, client_id, client_secret, is_default, is_active, notes, created_at)
+                VALUES (?, ?, ?, ?, 1, 1, 'Default tenant (created during install)', NOW())
+            ");
+            $stmt->execute(['Default', $graph['tenant_id'], $graph['client_id'], $graph['client_secret']]);
 
             // Lock installer
             InstallService::lock();
