@@ -141,6 +141,8 @@ $router->any ('/api/check',                   [ApiController::class, 'check']);
 $router->any ('/check',                       [ApiController::class, 'check']);   // clean alias of /check.php
 $router->any ('/check.php',                   [ApiController::class, 'check']);   // backward-compat for LIS
 
+$router->get ('/api/suppression',             [ApiController::class, 'list']);
+
 // ----------------------------------------------------------
 // External cron (automated sync every 5 min, 12h window)
 // Auth: X-Cron-Token header (or ?token=) + localhost-only by default.

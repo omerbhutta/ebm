@@ -12,7 +12,7 @@ Powered by [E-Services 360](https://eservices360.com).
 - 📬 **Multi-mailbox scanning** — monitor an unlimited number of M365 mailboxes from a single dashboard
 - 📋 **Bounce log** — searchable, filterable history of every NDR discovered
 - ⊘ **Suppression list** — automatically populated from NDRs; address-level + domain-level rollups
-- 🔌 **HTTP API** — `POST /api/check` (or `/check.php`) returns whether one or many addresses are blocked, with optional bounce count
+- 🔌 **HTTP API** — check addresses against the suppression list, or export the full list programmatically
 - 🌓 **Dark + light themes** — user-toggleable, with a configurable default
 - 🔐 **Two-tier access** — separate viewer and admin passwords (hashed with `password_hash()`)
 - 🛡️ **Hardened** — CSRF tokens, rate-limited login, secure session handling, `.htaccess`-protected storage and config
@@ -75,9 +75,14 @@ The Graph app has **tenant-wide** `Mail.Read`, so it can read any mailbox in the
 Add-MailboxPermission -Identity "bounces@contoso.com" -User "<EBM-APP-ID>" -AccessRights FullAccess -AutoMapping $false
 ```
 
-## 🧪 Testing the API
+## 🧪 API
 
-After installation, your API key is shown on **Admin → Security**. The endpoint is:
+After installation, your API key is shown on **Admin → Security**. All API endpoints require
+the key via the `X-Api-Key` header or `?key=` query parameter.
+
+### `POST /api/check` — check addresses
+
+Returns whether one or many addresses exist in the suppression list.
 
 ```
 POST /api/check
@@ -106,7 +111,39 @@ Response:
 }
 ```
 
-The legacy `check.php` URL still works for backward compatibility with older sending integrations.
+The legacy `check.php` URL also works for backward compatibility.
+
+### `GET /api/suppression` — export the full suppression list
+
+Returns all suppressed email addresses with pagination. Useful for syncing with external
+systems or building custom integrations.
+
+```
+GET /api/suppression?page=1&per_page=100&search=example.com&key=<your-key>
+Headers: X-Api-Key: <your-key>    (alternative to ?key=)
+```
+
+| Param | Default | Description |
+|---|---|---|
+| `page` | `1` | Page number (1-based) |
+| `per_page` | `100` | Results per page (max 500) |
+| `search` | *(empty)* | Filter by email (LIKE %search%) |
+
+Response:
+
+```json
+{
+  "ok": true,
+  "total": 1250,
+  "page": 1,
+  "per_page": 100,
+  "pages": 13,
+  "data": [
+    { "email": "bad@example.com", "first_seen": "2026-01-15 10:30:00", "last_seen": "2026-06-10 14:22:00", "bounce_count": 5 },
+    { "email": "invalid@test.org", "first_seen": "2026-02-20 08:15:00", "last_seen": "2026-06-09 09:00:00", "bounce_count": 2 }
+  ]
+}
+```
 
 ## ⚙️ Configuration
 

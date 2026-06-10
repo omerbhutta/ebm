@@ -9,6 +9,7 @@ use App\Core\Response;
 use App\Core\Settings;
 use App\Core\Logger;
 use App\Services\SuppressionService;
+use App\Services\BounceService;
 
 /**
  * Public-ish API endpoint used by external sending systems (e.g. LIS).
@@ -96,5 +97,69 @@ final class ApiController extends Controller
                 'results' => array_map(fn($e) => ['email' => $e, 'suppressed' => false], $emails),
             ], 200);
         }
+    }
+
+    /**
+     * GET /api/suppression — return the full suppression list (paginated).
+     * Auth: X-Api-Key header or ?key= query param.
+     */
+    public function list(Request $req): void
+    {
+        $providedKey = $req->header('X-Api-Key')
+            ?: ($req->input('key', '') ?: '');
+
+        $expected = (string)Settings::get('check_api_key', '');
+        if ($expected === '' || $expected === 'change-me') {
+            Response::json(['error' => 'API key not configured on server.'], 503);
+        }
+        if (!is_string($providedKey) || $providedKey === '' || !hash_equals($expected, $providedKey)) {
+            Logger::warn('api.suppression.bad_key', 'Bad API key on suppression list', ['ip' => $req->ip()]);
+            Response::json(['error' => 'Invalid or missing API key.'], 401);
+        }
+
+        $page    = max(1, (int)$req->query('page', 1));
+        $perPage = max(10, min(500, (int)$req->query('per_page', 100)));
+        $search  = trim((string)$req->query('search', ''));
+
+        $pdo = \App\Core\Database::connection();
+
+        $where = '';
+        $params = [];
+        if ($search !== '') {
+            $where = "WHERE email LIKE ?";
+            $params[] = '%' . $search . '%';
+        }
+
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM suppression_list $where");
+        $countStmt->execute($params);
+        $total = (int)$countStmt->fetchColumn();
+
+        $offset = ($page - 1) * $perPage;
+        $rows = [];
+        if ($total > 0) {
+            $stmt = $pdo->prepare("
+                SELECT email, first_seen, last_seen, bounce_count
+                FROM suppression_list
+                $where
+                ORDER BY last_seen DESC
+                LIMIT $perPage OFFSET $offset
+            ");
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll();
+            foreach ($rows as &$r) {
+                $r['first_seen'] = $r['first_seen'] ?? null;
+                $r['last_seen']  = $r['last_seen'] ?? null;
+                $r['bounce_count'] = (int)$r['bounce_count'];
+            }
+        }
+
+        Response::json([
+            'ok'       => true,
+            'total'    => $total,
+            'page'     => $page,
+            'per_page' => $perPage,
+            'pages'    => max(1, (int)ceil($total / $perPage)),
+            'data'     => $rows,
+        ]);
     }
 }
