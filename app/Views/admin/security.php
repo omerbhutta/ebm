@@ -17,8 +17,13 @@ foreach (Logger::recent(50) as $row) {
         $cronLast = $row; break;
     }
 }
-$cronUrl = $app->baseUrl('/cron/refresh');
-$cronCurl = "*/5 * * * * curl -fsS -H \"X-Cron-Token: {$cronToken}\" {$cronUrl}";
+// Build full absolute URL for crontab (scheme + host + path)
+$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$base   = rtrim($scheme . '://' . $host . $app->baseUrl(''), '/');
+$cronUrl     = $base . '/cron/refresh';
+$cronCurl    = "*/5 * * * * curl -fsS -H \"X-Cron-Token: {$cronToken}\" {$cronUrl}";
+$cronCurlWget = "*/5 * * * * wget -qO- --header=\"X-Cron-Token: {$cronToken}\" {$cronUrl}";
 ?>
 <?php $subtitle = 'Passwords, API key, cron scheduler, and rate limits.'; include __DIR__ . '/../partials/page-header.php'; ?>
 
@@ -119,9 +124,13 @@ $cronCurl = "*/5 * * * * curl -fsS -H \"X-Cron-Token: {$cronToken}\" {$cronUrl}"
 
     <label class="form__field">
       <span class="form__label">Example crontab (runs every 5 minutes)</span>
-      <textarea class="form__control" rows="3" readonly id="cronCurl"><?= htmlspecialchars($cronCurl) ?></textarea>
-      <small class="muted">Replace the token with the one above. Use a task scheduler on Windows
-        with the same URL and header.</small>
+      <textarea class="form__control" rows="6" readonly id="cronCurl"># curl — Linux crontab, Laragon cron, Windows (curl bundled)
+<?= htmlspecialchars($cronCurl) ?>
+
+# wget — Linux crontab / shared hosting (alternative)
+<?= htmlspecialchars($cronCurlWget) ?></textarea>
+      <small class="muted">Paste into crontab (Linux), Laragon Cron (Menu → Laragon → Cron), or
+        any external scheduler (EasyCron, etc.). The token is sent as an HTTP header. &#8203;</small>
     </label>
 
     <form method="post" action="<?= htmlspecialchars($app->baseUrl('/admin/security/rotate-cron')) ?>" class="form" style="margin-top:14px">

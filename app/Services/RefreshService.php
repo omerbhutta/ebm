@@ -48,10 +48,21 @@ final class RefreshService
         $useCache = !$windowed && !$forceRefresh;
 
         $filterExpr = '';
+        $searchExpr = '$search="subject:undeliverable'
+            . ' OR subject:%22Delivery Status%22'
+            . ' OR subject:%22delivery failure%22'
+            . ' OR subject:%22mail delivery%22'
+            . ' OR subject:%22returned mail%22'
+            . ' OR subject:undelivered'
+            . ' OR subject:%22non-delivery%22'
+            . ' OR subject:%22failure notice%22"';
         if ($windowed) {
             $iso = (new DateTimeImmutable('@' . $since->getTimestamp()))
                 ->setTimezone(new DateTimeZone('UTC'))
                 ->format('Y-m-d\TH:i:s\Z');
+            // Cron mode: use only $filter (no $search) to catch ALL messages
+            // in the time window. BounceService handles NDR detection.
+            $searchExpr = '';
             $filterExpr = "&\$filter=receivedDateTime ge {$iso}";
         }
 
@@ -126,7 +137,7 @@ final class RefreshService
                         $messages = [];
                         $url = "https://graph.microsoft.com/v1.0/users/" . rawurlencode($email) .
                                "/mailFolders/{$folderId}/messages?" .
-                               "\$search=\"subject:undeliverable\"" .
+                               $searchExpr .
                                "&\$select=id,subject,receivedDateTime,from,toRecipients" .
                                "&\$top=" . $maxMessages .
                                $filterExpr;

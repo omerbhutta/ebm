@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Cache;
 use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Response;
@@ -76,6 +77,10 @@ final class CronController extends Controller
                 maxMessages:  100,    // per-folder cap inside the 12h window
                 pageLimit:    20
             );
+
+            // Clear cached message data so the next dashboard/bounce page load
+            // fetches fresh data reflecting what cron just synced.
+            Cache::flush();
 
             Response::json([
                 'ok'             => true,

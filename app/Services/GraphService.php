@@ -148,9 +148,9 @@ final class GraphService
         foreach ($folders as $label => $folderId) {
             $url = "https://graph.microsoft.com/v1.0/users/" . rawurlencode($mailboxEmail) .
                    "/mailFolders/{$folderId}/messages?" .
-                   "\$search=\"subject:undeliverable\"" .
-                   "&\$select=id,subject,receivedDateTime,from,toRecipients" .
-                   "&\$top=100";
+                    "\$search=\"subject:undeliverable\"" .
+                    "&\$select=id,subject,receivedDateTime,from,toRecipients" .
+                    "&\$top=100";
             $page = 0;
             while ($url && $page < $pageLimit) {
                 $page++;
@@ -169,7 +169,7 @@ final class GraphService
         }
 
         return [
-            'ok'       => true,
+            'ok'       => empty($errors) || !empty($all),
             'error'    => $errors ? implode(' | ', $errors) : null,
             'messages' => $all,
         ];

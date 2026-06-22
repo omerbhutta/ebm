@@ -44,8 +44,8 @@ foreach (($mailbox_breakdown ?? []) as $mb) {
       <span class="stat-card__label">Today</span>
       <span style="font-size: 16px; filter: drop-shadow(0 0 6px var(--accent-glow));">⚡</span>
     </div>
-    <div class="stat-card__value"><?= number_format($timeline['lifetime'] ?? 0) ?></div>
-    <div class="stat-card__sub">Total suppression items</div>
+    <div class="stat-card__value"><?= number_format($timeline['today'] ?? 0) ?></div>
+    <div class="stat-card__sub">Suppressions added today</div>
   </div>
 
   <div class="stat-card">
@@ -53,8 +53,8 @@ foreach (($mailbox_breakdown ?? []) as $mb) {
       <span class="stat-card__label">This Week</span>
       <span style="font-size: 16px; opacity: 0.8;">🗓</span>
     </div>
-    <div class="stat-card__value"><?= number_format($timeline['lifetime'] ?? 0) ?></div>
-    <div class="stat-card__sub">Total suppression items</div>
+    <div class="stat-card__value"><?= number_format($timeline['week'] ?? 0) ?></div>
+    <div class="stat-card__sub">Suppressions added in 7 days</div>
   </div>
 
   <div class="stat-card">
@@ -62,8 +62,8 @@ foreach (($mailbox_breakdown ?? []) as $mb) {
       <span class="stat-card__label">This Month</span>
       <span style="font-size: 16px; opacity: 0.8;">📅</span>
     </div>
-    <div class="stat-card__value"><?= number_format($timeline['lifetime'] ?? 0) ?></div>
-    <div class="stat-card__sub">Total suppression items</div>
+    <div class="stat-card__value"><?= number_format($timeline['month'] ?? 0) ?></div>
+    <div class="stat-card__sub">Suppressions added in 30 days</div>
   </div>
 
   <div class="stat-card">
@@ -71,8 +71,8 @@ foreach (($mailbox_breakdown ?? []) as $mb) {
       <span class="stat-card__label">This Year</span>
       <span style="font-size: 16px; opacity: 0.8;">📊</span>
     </div>
-    <div class="stat-card__value"><?= number_format($timeline['lifetime'] ?? 0) ?></div>
-    <div class="stat-card__sub">Total suppression items</div>
+    <div class="stat-card__value"><?= number_format($timeline['year'] ?? 0) ?></div>
+    <div class="stat-card__sub">Suppressions added in 365 days</div>
   </div>
 
   <div class="stat-card">

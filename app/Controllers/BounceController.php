@@ -13,6 +13,7 @@ use App\Services\MailboxService;
 use App\Services\GraphService;
 use App\Services\BounceService;
 use App\Services\ExportService;
+use App\Services\SuppressionService;
 
 /**
  * Bounce records — list view, single-message details (modal AJAX), export.
@@ -26,11 +27,12 @@ final class BounceController extends Controller
         $folders = json_decode((string)Settings::get('monitor_folders', '{}'), true) ?: [];
         if (empty($folders)) $folders = ['Inbox' => 'inbox', 'Junk Email' => 'junkemail', 'Deleted Items' => 'deleteditems'];
 
-        $cacheTtl = Settings::int('cache_ttl', 300);
+        $cacheTtl = 1800; // 30 min — data is freshened by cron; see CronController
         $forceRefresh = $req->query('refresh') === '1';
 
         $rows = [];
         $errors = [];
+        $ndrTuples = [];
         foreach (MailboxService::all(true) as $mb) {
             foreach ($folders as $label => $folderId) {
                 $cacheKey = MailboxService::slug($mb['email']) . '__' . preg_replace('/[^a-z0-9]/i','',$label);
@@ -46,6 +48,9 @@ final class BounceController extends Controller
                 }
                 foreach ($messages as $m) {
                     $failed = BounceService::extractFailedRecipients($m, $mb['email']);
+                    foreach ($failed as $e) {
+                        $ndrTuples[] = ['mailbox' => $mb['email'], 'message_id' => $m['id'], 'email' => $e];
+                    }
                     $rows[$m['id']] = [
                         'id'         => $m['id'],
                         'subject'    => $m['subject'] ?? '(no subject)',
@@ -60,6 +65,9 @@ final class BounceController extends Controller
                 }
             }
         }
+        // Sync any newly-discovered bounces to the suppression list
+        SuppressionService::sync($ndrTuples);
+
         $rows = array_values($rows);
         usort($rows, fn($a, $b) => strcmp((string)$b['date'], (string)$a['date']));
 

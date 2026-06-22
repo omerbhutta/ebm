@@ -135,6 +135,10 @@ final class SuppressionService
                     COUNT(CASE WHEN first_seen >= CURDATE() THEN 1 END) AS added_24h,
                     COUNT(CASE WHEN last_seen  >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) THEN 1 END) AS seen_7d,
                     COUNT(CASE WHEN last_seen  >= CURDATE() THEN 1 END) AS seen_24h,
+                    COUNT(CASE WHEN first_seen >= CURDATE() THEN 1 END) AS tl_today,
+                    COUNT(CASE WHEN first_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN 1 END) AS tl_week,
+                    COUNT(CASE WHEN first_seen >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) AS tl_month,
+                    COUNT(CASE WHEN first_seen >= DATE_SUB(CURDATE(), INTERVAL 365 DAY) THEN 1 END) AS tl_year,
                     MIN(first_seen) AS oldest,
                     MAX(last_seen)  AS newest
                 FROM suppression_list
@@ -157,16 +161,13 @@ final class SuppressionService
 
             $lastSync = $pdo->query("SELECT MAX(processed_at) FROM processed_ndrs")->fetchColumn();
 
-            // Timeline stats — all 5 boxes show the same number: the total
-            // suppression_list count. The five cards (Today / Week / Month /
-            // Year / Lifetime) are period-context labels for the same metric.
-            $suppressionTotal = (int)($row['total'] ?? 0);
+            // Timeline stats — counts of suppressions first seen in each period.
             $timeline = [
-                'today'    => $suppressionTotal,
-                'week'     => $suppressionTotal,
-                'month'    => $suppressionTotal,
-                'year'     => $suppressionTotal,
-                'lifetime' => $suppressionTotal,
+                'today'    => (int)($row['tl_today'] ?? 0),
+                'week'     => (int)($row['tl_week'] ?? 0),
+                'month'    => (int)($row['tl_month'] ?? 0),
+                'year'     => (int)($row['tl_year'] ?? 0),
+                'lifetime' => (int)($row['total'] ?? 0),
             ];
 
             // 7-day trend from scan_stats (scanned messages, unique failed

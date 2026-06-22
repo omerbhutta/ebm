@@ -8,6 +8,7 @@ use App\Core\Request;
 use App\Core\Auth;
 use App\Core\Flash;
 use App\Services\SuppressionService;
+use App\Services\RefreshService;
 use App\Services\ExportService;
 
 /**
@@ -18,6 +19,10 @@ final class SuppressionController extends Controller
     public function index(Request $req): void
     {
         Auth::requireViewer();
+
+        // Sync recent bounces so the suppression list is always current
+        $since = new \DateTimeImmutable('-1 hour');
+        RefreshService::run(forceRefresh: true, since: $since, maxMessages: 100, pageLimit: 5);
 
         $search = trim((string)$req->query('q', ''));
         $page   = max(1, (int)$req->query('page', 1));
