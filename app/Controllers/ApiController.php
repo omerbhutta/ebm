@@ -118,7 +118,7 @@ final class ApiController extends Controller
         }
 
         $page    = max(1, (int)$req->query('page', 1));
-        $perPage = max(10, min(500, (int)$req->query('per_page', 100)));
+        $perPage = max(1, min(100000, (int)($req->query('per_page', $req->query('limit', 100)))));
         $search  = trim((string)$req->query('search', ''));
 
         $pdo = \App\Core\Database::connection();
